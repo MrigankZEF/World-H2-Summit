@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F5F2EE">
+<title>{{ site_title }}</title>
+<meta name="description" content="A live pulse of the room. Four questions. One chart. The benchmark where ZEF actually ships.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body data-hook="{{ default_hook }}">
+
+<div class="stage">
+  <div class="phone" id="phone">
+
+    {# ══════════════════════════ HOOK ══════════════════════════ #}
+    <section class="scene is-active" id="scene-hook">
+      <div class="topbar">
+        <div class="wordmark"><span class="dot"></span>{{ wordmark }}</div>
+        <div class="progress" style="visibility:hidden">0 / {{ questions|length }}</div>
+      </div>
+
+      <div class="hook-body">
+        <div class="hook-eyebrow"><span class="bar"></span>{{ hook_eyebrow }}</div>
+        <h1 class="hook-headline" id="hook-headline"></h1>
+        <p class="hook-sub">{{ hook_sub|safe }}</p>
+      </div>
+
+      <div class="hook-cta-wrap">
+        <button class="cta" data-goto="{{ questions[0].id }}">
+          <span>{{ hook_cta }}</span>
+          <span class="arrow">{{ hook_cta_hint }}</span>
+        </button>
+        <div class="hook-context">
+          <span class="pulse-dot"></span>
+          <span id="live-count">Live counts update after the first answer.</span>
+        </div>
+      </div>
+
+      <div class="hook-signature">
+        <span>{{ hook_sig_left }}</span>
+        <span>{{ hook_sig_right }}</span>
+      </div>
+    </section>
+
+    {# ══════════════════════════ QUESTIONS ══════════════════════════ #}
+    {% for q in questions %}
+    {% set idx = loop.index %}
+    {% set prev = 'hook' if loop.first else questions[loop.index0 - 1].id %}
+    <section class="scene" id="scene-{{ q.id }}">
+      <div class="topbar">
+        <button class="back is-visible" data-goto="{{ prev }}" aria-label="Back">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M15 4l-8 8 8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="progress">
+          <span>{{ idx }} / {{ questions|length }}</span>
+          <div class="progress-bar"><i style="transform:scaleX({{ '%.4f'|format(idx / questions|length) }})"></i></div>
+        </div>
+      </div>
+      <div class="q-eyebrow">Question {{ q.number }}</div>
+      <h2 class="q-headline">{{ q.headline|safe }}</h2>
+      <p class="q-sub">{{ q.sub|safe }}</p>
+      <div class="options" data-question="{{ q.id }}">
+        {% for opt in q.options %}
+        <button class="opt" data-value="{{ opt.value }}">
+          <span class="tick">
+            <svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="label">{{ opt.label }}</span>
+          <span class="hint">{{ opt.hint }}</span>
+        </button>
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+
+    {# ══════════════════════════ REVEAL ══════════════════════════ #}
+    <section class="scene" id="scene-reveal">
+      <div class="reveal-inner">
+        <div class="topbar">
+          <div class="wordmark"><span class="dot"></span>{{ wordmark }}</div>
+          <div class="progress"><span id="rev-live">0 ANSWERED</span></div>
+        </div>
+
+        <div class="reveal-head">
+          <div class="reveal-kicker"><span class="bar"></span>Your pulse</div>
+          <h2 class="reveal-headline" id="reveal-headline"></h2>
+          <p class="reveal-sub" id="reveal-sub"></p>
+        </div>
+
+        {% set primary = questions[0] %}
+        <div class="chart" id="chart-{{ primary.id }}" data-question="{{ primary.id }}">
+          <div class="chart-title">
+            <span>{{ primary.chart_title|safe }}</span>
+            <span class="tot">n = <span class="rev-n">0</span></span>
+          </div>
+          <div class="bars"></div>
+          {# Benchmark marker injected by JS if BENCHMARK.question_id matches #}
+          <div class="zef-marker" data-marker-for="{{ primary.id }}" hidden>
+            <div class="tick-line"></div>
+            <div>
+              <div class="kicker"></div>
+              <div class="value"></div>
+            </div>
+            <div class="red-pill"></div>
+          </div>
+        </div>
+
+        {% if questions|length > 1 %}
+        <button class="expand-trigger" id="expand-btn">
+          <span>See all {{ questions|length }} charts</span>
+          <span class="chev">↓</span>
+        </button>
+        <div class="extra-charts" id="extra-charts">
+          {% for q in questions %}
+          {% if not loop.first %}
+          <div class="chart" id="chart-{{ q.id }}" data-question="{{ q.id }}">
+            <div class="chart-title">
+              <span>{{ q.chart_title|safe }}</span>
+              <span class="tot">n = <span class="rev-n">0</span></span>
+            </div>
+            <div class="bars"></div>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="reveal-footer">
+          <button class="btn-ghost" data-goto="hook" data-reset="1">Start over</button>
+          <button class="btn-solid" data-goto="lead">Get the full benchmark →</button>
+        </div>
+      </div>
+    </section>
+
+    {# ══════════════════════════ LEAD ══════════════════════════ #}
+    <section class="scene" id="scene-lead">
+      <div class="topbar">
+        <button class="back is-visible" data-goto="reveal" aria-label="Back">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M15 4l-8 8 8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="progress"><span>Step 2</span></div>
+      </div>
+
+      <div class="lead-body">
+        <div class="lead-head">
+          <div class="lead-kicker"><span class="bar"></span>{{ lead_kicker }}</div>
+          <h2 class="lead-headline">{{ lead_headline }}</h2>
+          <p class="lead-sub">{{ lead_sub }}</p>
+        </div>
+
+        <form id="lead-form">
+          <div class="field">
+            <input type="email" id="lead-email" placeholder="you@company.com" autocomplete="email" inputmode="email" required>
+          </div>
+
+          <div class="chips" id="role-chips">
+            {% for role in lead_roles %}
+            <button type="button" class="chip" data-role="{{ role.value }}">{{ role.label }}</button>
+            {% endfor %}
+          </div>
+          <div class="chips-hint">Optional · helps us tailor the sample</div>
+
+          <button type="submit" class="lead-submit">{{ lead_submit }}</button>
+          <div class="lead-error" id="lead-error" hidden></div>
+        </form>
+
+        <div class="success" id="lead-success">
+          <div class="check">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <p class="big">{{ lead_success_title }}</p>
+          <p class="small">{{ lead_success_sub }}</p>
+          <a class="see" href="https://zef.tech" target="_blank" rel="noopener">See what ZEF does →</a>
+        </div>
+      </div>
+
+      <div class="lead-sig">
+        <span>{{ lead_sig_left }}</span>
+        <span>{{ lead_sig_right }}</span>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script id="cfg-questions"   type="application/json">{{ questions_json | safe }}</script>
+<script id="cfg-hooks"       type="application/json">{{ hooks_json | safe }}</script>
+<script id="cfg-benchmark"   type="application/json">{{ benchmark_json | safe }}</script>
+<script id="cfg-aggregate"   type="application/json">{{ initial_aggregate_json | safe }}</script>
+<script src="/static/app.js" defer></script>
+</body>
+</html>

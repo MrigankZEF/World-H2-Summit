@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<!--
+  Self-contained preview of the zef-poll microsite.
+  - All CSS and JS inlined.
+  - API calls stubbed (console.log only); demo aggregate baked in.
+  - For production use, run the FastAPI server (see README.md).
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F5F2EE">
+<title>ZEF — Settle the debate (preview)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --red:#E4002B;
+  --red-ink:#B80023;
+  --bg:#F5F2EE;
+  --ink:#1A1A1A;
+  --ink-deep:#0B0B0B;
+  --grey:#C9C4BE;
+  --grey-soft:#E5E1DB;
+  --grey-line:#D9D4CC;
+  --muted:#6B6560;
+  --display:'Space Grotesk', 'Söhne', system-ui, sans-serif;
+  --body:'Inter', system-ui, sans-serif;
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#2a2724;}
+body{font-family:var(--body);color:var(--ink);font-feature-settings:"ss01","cv11","tnum";-webkit-font-smoothing:antialiased;}
+
+.stage{
+  position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 30%, #1f1d1b 0%, #141311 60%, #0a0908 100%);
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.phone{position:relative;width:min(100vw,420px);height:min(100vh,880px);background:var(--bg);overflow:hidden;border-radius:0;}
+@media (min-width:500px){
+  .phone{border-radius:48px;box-shadow:0 0 0 2px #1a1a1a,0 0 0 12px #2a2724,0 0 0 13px #3a3633,0 50px 120px rgba(0,0,0,.5),0 10px 40px rgba(0,0,0,.35);}
+}
+.phone::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;background-image:linear-gradient(to right,rgba(26,26,26,.045) 1px,transparent 1px),linear-gradient(to bottom,rgba(26,26,26,.045) 1px,transparent 1px);background-size:28px 28px;mix-blend-mode:multiply;}
+
+.scene{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;padding:56px 24px 28px;opacity:0;transform:translateX(12px);pointer-events:none;transition:opacity .28s var(--ease),transform .32s var(--ease);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
+.scene.is-active{opacity:1;transform:translateX(0);pointer-events:auto}
+.scene.is-exit-left{transform:translateX(-12px)}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;height:28px;margin-bottom:auto;}
+.wordmark{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.24em;color:var(--ink);display:flex;align-items:center;gap:8px;}
+.wordmark .dot{width:7px;height:7px;background:var(--red);border-radius:50%;display:inline-block;transform:translateY(-1px)}
+.progress{display:flex;align-items:center;gap:10px;font-family:var(--body);font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted);letter-spacing:.08em;}
+.progress-bar{width:64px;height:2px;background:var(--grey-soft);border-radius:2px;overflow:hidden;position:relative}
+.progress-bar i{position:absolute;inset:0;background:var(--ink);transform-origin:left;transform:scaleX(0);transition:transform .5s var(--ease)}
+.back{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:transparent;border:1px solid var(--grey-line);cursor:pointer;color:var(--ink);opacity:0;pointer-events:none;transition:opacity .25s;margin-right:-4px;}
+.back.is-visible{opacity:1;pointer-events:auto}
+.back svg{width:12px;height:12px}
+
+#scene-hook{padding:56px 24px 36px}
+.hook-body{flex:1;display:flex;flex-direction:column;justify-content:center;max-width:100%}
+.hook-eyebrow{font-family:var(--body);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:20px;display:flex;align-items:center;gap:10px;}
+.hook-eyebrow .bar{width:18px;height:1px;background:var(--red)}
+.hook-headline{font-family:var(--display);font-weight:500;font-size:clamp(38px,10.5vw,52px);line-height:1.02;letter-spacing:-.035em;color:var(--ink);margin:0 0 24px;}
+.hook-headline .num{color:var(--red);font-weight:600;font-variant-numeric:tabular-nums}
+.hook-headline .word{display:inline-block;margin-right:.24em;opacity:0;transform:translateY(14px);transition:opacity .6s var(--ease),transform .6s var(--ease);}
+.scene.is-active .hook-headline .word{opacity:1;transform:translateY(0)}
+.hook-sub{font-family:var(--body);font-size:13.5px;line-height:1.5;color:var(--muted);max-width:310px;margin:0;}
+.hook-sub b{color:var(--ink);font-weight:500}
+.hook-cta-wrap{display:flex;flex-direction:column;gap:12px;margin-top:28px}
+.cta{background:var(--ink);color:var(--bg);border:none;font-family:var(--display);font-weight:500;font-size:16px;letter-spacing:-.01em;padding:19px 22px;border-radius:14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:transform .15s var(--ease),background .2s;}
+.cta:hover{background:#000}
+.cta:active{transform:scale(.985)}
+.cta .arrow{font-family:var(--display);font-weight:400;opacity:.7}
+.hook-context{font-family:var(--body);font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:8px;padding:0 4px;}
+.pulse-dot{width:6px;height:6px;border-radius:50%;background:var(--red);box-shadow:0 0 0 0 rgba(228,0,43,.6);animation:pulse 2.2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(228,0,43,.5)}70%{box-shadow:0 0 0 8px rgba(228,0,43,0)}100%{box-shadow:0 0 0 0 rgba(228,0,43,0)}}
+.hook-signature{font-family:var(--body);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:32px;display:flex;justify-content:space-between;align-items:center;padding-top:16px;border-top:1px solid var(--grey-line);}
+.hook-signature span{opacity:.8}
+
+.q-eyebrow{font-family:var(--body);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin:28px 0 14px;}
+.q-headline{font-family:var(--display);font-weight:500;font-size:clamp(30px,8vw,38px);line-height:1.05;letter-spacing:-.028em;color:var(--ink);margin:0 0 10px;}
+.q-sub{font-family:var(--body);font-size:13px;color:var(--muted);margin:0 0 28px;letter-spacing:.02em;}
+.q-sub b{color:var(--ink);font-weight:500}
+.options{display:flex;flex-direction:column;gap:10px;flex:1}
+.opt{position:relative;display:flex;align-items:center;gap:16px;padding:19px 20px 19px 18px;background:transparent;border:1px solid var(--grey-line);border-radius:14px;cursor:pointer;font-family:var(--display);font-weight:500;font-size:19px;letter-spacing:-.02em;color:var(--ink);text-align:left;transition:border-color .18s,background .18s,transform .12s var(--ease);overflow:hidden;}
+.opt:hover{border-color:var(--ink);background:rgba(26,26,26,.02)}
+.opt .tick{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--grey);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:border-color .2s,background .2s;}
+.opt .tick svg{width:10px;height:10px;opacity:0;transform:scale(.6);transition:opacity .15s,transform .15s}
+.opt .label{flex:1}
+.opt .hint{font-family:var(--body);font-size:12px;color:var(--muted);font-weight:400;letter-spacing:0}
+.opt.is-locked{border-color:var(--red);background:rgba(228,0,43,.04);animation:lockscale .22s var(--ease);}
+.opt.is-locked .tick{border-color:var(--red);background:var(--red)}
+.opt.is-locked .tick svg{opacity:1;transform:scale(1)}
+.opt.is-locked .hint{color:var(--red)}
+@keyframes lockscale{0%{transform:scale(1)}40%{transform:scale(.98)}100%{transform:scale(1)}}
+
+#scene-reveal .reveal-inner{display:flex;flex-direction:column;min-height:100%}
+.reveal-head{margin:20px 0 24px}
+.reveal-kicker{font-family:var(--body);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--red);margin:0 0 12px;display:flex;align-items:center;gap:8px;}
+.reveal-kicker .bar{width:18px;height:1px;background:var(--red)}
+.reveal-headline{font-family:var(--display);font-weight:500;font-size:clamp(32px,8.5vw,40px);line-height:1.04;letter-spacing:-.03em;color:var(--ink);margin:0;}
+.reveal-headline .pct{color:var(--red);font-weight:600;font-variant-numeric:tabular-nums}
+.reveal-sub{font-family:var(--body);font-size:13px;color:var(--muted);margin-top:14px;line-height:1.5}
+
+.chart{margin-top:4px;position:relative}
+.chart-title{font-family:var(--body);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;display:flex;justify-content:space-between;}
+.chart-title .tot{color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}
+.bar-row{display:grid;grid-template-columns:84px 1fr 52px;align-items:center;gap:12px;padding:9px 0;}
+.bar-label{font-family:var(--display);font-weight:500;font-size:14px;letter-spacing:-.01em;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-track{height:10px;background:var(--grey-soft);border-radius:2px;overflow:visible;position:relative}
+.bar-fill{height:100%;background:var(--grey);border-radius:2px;width:0%;transition:width .6s var(--ease);transition-delay:var(--d,0ms);}
+.bar-row.is-user .bar-fill{background:var(--red);box-shadow:0 0 0 0 rgba(228,0,43,0);animation:userPulse 1.4s var(--ease) 800ms}
+@keyframes userPulse{0%{box-shadow:0 0 0 0 rgba(228,0,43,.5)}60%{box-shadow:0 0 0 4px rgba(228,0,43,0)}100%{box-shadow:0 0 0 0 rgba(228,0,43,0)}}
+.bar-pct{font-family:var(--display);font-weight:500;font-size:13px;color:var(--ink);text-align:right;font-variant-numeric:tabular-nums;opacity:0;transition:opacity .3s;transition-delay:var(--d,0ms);}
+.is-revealed .bar-pct{opacity:1}
+.bar-row.is-user .bar-label{color:var(--red)}
+.bar-row.is-user .bar-pct{color:var(--red)}
+
+.zef-marker{margin-top:24px;padding:16px 16px 16px 18px;border:1px solid var(--ink);border-radius:12px;background:var(--ink);color:var(--bg);display:flex;align-items:center;gap:14px;position:relative;opacity:0;transform:translateY(8px);transition:opacity .5s var(--ease),transform .5s var(--ease);transition-delay:.95s;}
+.is-revealed .zef-marker{opacity:1;transform:translateY(0)}
+.zef-marker .tick-line{position:absolute;top:-8px;left:var(--mark,40%);width:1px;height:8px;background:var(--red);}
+.zef-marker .tick-line::before{content:"";position:absolute;top:-4px;left:-3px;width:7px;height:7px;background:var(--red);border-radius:50%;}
+.zef-marker .kicker{font-family:var(--body);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:rgba(245,242,238,.55);margin-bottom:4px;}
+.zef-marker .value{font-family:var(--display);font-weight:500;font-size:18px;letter-spacing:-.02em;color:var(--bg);font-variant-numeric:tabular-nums;}
+.zef-marker .value .unit{color:rgba(245,242,238,.55);font-weight:400;font-size:13px;margin-left:2px}
+.zef-marker .red-pill{margin-left:auto;padding:5px 9px;border:1px solid rgba(245,242,238,.2);border-radius:99px;font-family:var(--body);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(245,242,238,.7);}
+
+.expand-trigger{margin-top:28px;padding:14px 0;background:none;border:none;border-top:1px solid var(--grey-line);font-family:var(--body);font-size:13px;color:var(--ink);letter-spacing:.01em;display:flex;align-items:center;justify-content:space-between;cursor:pointer;width:100%;}
+.expand-trigger .chev{transition:transform .3s var(--ease);font-family:var(--display)}
+.expand-trigger.is-open .chev{transform:rotate(180deg)}
+.extra-charts{max-height:0;overflow:hidden;transition:max-height .5s var(--ease)}
+.extra-charts.is-open{max-height:2400px}
+.extra-charts .chart{margin-top:22px;padding-top:22px;border-top:1px dashed var(--grey-line)}
+.extra-charts .chart:first-child{border-top:none;padding-top:0}
+
+.reveal-footer{margin-top:32px;padding-top:20px;border-top:1px solid var(--grey-line);display:flex;gap:10px;}
+.btn-ghost{flex:1;background:transparent;border:1px solid var(--grey-line);border-radius:12px;padding:16px;font-family:var(--display);font-weight:500;font-size:14px;letter-spacing:-.01em;color:var(--ink);cursor:pointer;transition:border-color .2s,background .2s;}
+.btn-ghost:hover{border-color:var(--ink)}
+.btn-solid{flex:1.4;background:var(--red);color:#fff;border:none;border-radius:12px;padding:16px;font-family:var(--display);font-weight:500;font-size:14px;letter-spacing:-.01em;cursor:pointer;transition:background .2s,transform .12s var(--ease);display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-solid:hover{background:var(--red-ink)}
+.btn-solid:active{transform:scale(.985)}
+
+.lead-body{flex:1;display:flex;flex-direction:column;justify-content:center}
+.lead-head{margin-bottom:26px}
+.lead-kicker{font-family:var(--body);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin:0 0 14px;display:flex;align-items:center;gap:8px;}
+.lead-kicker .bar{width:18px;height:1px;background:var(--red)}
+.lead-headline{font-family:var(--display);font-weight:500;font-size:clamp(28px,7.5vw,34px);line-height:1.07;letter-spacing:-.028em;color:var(--ink);margin:0 0 10px;}
+.lead-sub{font-family:var(--body);font-size:13px;color:var(--muted);line-height:1.5;margin:0;max-width:310px}
+
+.field{position:relative;margin-top:22px}
+.field input{width:100%;background:#fff;border:1px solid var(--grey-line);border-radius:12px;padding:18px 18px;font-family:var(--body);font-size:16px;color:var(--ink);outline:none;transition:border-color .2s,box-shadow .2s;font-variant-numeric:tabular-nums;}
+.field input::placeholder{color:var(--muted)}
+.field input:focus{border-color:var(--ink);box-shadow:0 0 0 3px rgba(26,26,26,.06)}
+.field input.is-invalid{border-color:var(--red);box-shadow:0 0 0 3px rgba(228,0,43,.08)}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;}
+.chip{flex:1;min-width:0;text-align:center;padding:11px 6px;border:1px solid var(--grey-line);border-radius:99px;background:transparent;font-family:var(--body);font-size:13px;font-weight:500;color:var(--ink);cursor:pointer;transition:all .18s var(--ease);white-space:nowrap;}
+.chip:hover{border-color:var(--ink)}
+.chip.is-on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chips-hint{font-family:var(--body);font-size:11px;color:var(--muted);margin-top:10px;letter-spacing:.04em;}
+
+.lead-submit{margin-top:20px;width:100%;background:var(--red);color:#fff;border:none;border-radius:14px;padding:19px;font-family:var(--display);font-weight:500;font-size:16px;letter-spacing:-.01em;cursor:pointer;transition:background .2s,transform .12s var(--ease);}
+.lead-submit:hover{background:var(--red-ink)}
+.lead-submit:active{transform:scale(.985)}
+.lead-submit:disabled{opacity:.6;cursor:wait}
+.lead-error{margin-top:12px;font-family:var(--body);font-size:12px;color:var(--red);letter-spacing:.02em;}
+
+.success{display:none;flex-direction:column;align-items:flex-start;padding:28px 0;}
+.success.is-on{display:flex;animation:fadeUp .5s var(--ease)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.success .check{width:42px;height:42px;border-radius:50%;background:var(--ink);color:var(--bg);display:flex;align-items:center;justify-content:center;margin-bottom:20px;}
+.success .big{font-family:var(--display);font-weight:500;font-size:24px;letter-spacing:-.02em;line-height:1.2;margin:0 0 8px;color:var(--ink);}
+.success .small{font-family:var(--body);font-size:13px;color:var(--muted);margin:0 0 22px}
+.success a.see{font-family:var(--body);font-size:13px;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--ink);padding-bottom:2px;}
+.success a.see:hover{color:var(--red);border-color:var(--red)}
+
+.lead-sig{margin-top:28px;padding-top:16px;border-top:1px solid var(--grey-line);font-family:var(--body);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;}
+
+@media (max-width:380px){
+  .scene{padding:44px 20px 24px}
+  .chip{font-size:12px;padding:10px 4px}
+  .bar-row{grid-template-columns:72px 1fr 44px}
+}
+</style>
+</head>
+<body data-hook="B">
+
+<div class="stage">
+  <div class="phone" id="phone">
+
+    <!-- HOOK -->
+    <section class="scene is-active" id="scene-hook">
+      <div class="topbar">
+        <div class="wordmark"><span class="dot"></span>ZEF</div>
+        <div class="progress" style="visibility:hidden">0 / 4</div>
+      </div>
+      <div class="hook-body">
+        <div class="hook-eyebrow"><span class="bar"></span>World Hydrogen Summit · Rotterdam · May 2026</div>
+        <h1 class="hook-headline" id="hook-headline"></h1>
+        <p class="hook-sub">A live pulse of the room. <b>Four questions.</b> One chart. The benchmark where ZEF actually ships.</p>
+      </div>
+      <div class="hook-cta-wrap">
+        <button class="cta" data-goto="q1"><span>Settle the debate</span><span class="arrow">30 sec →</span></button>
+        <div class="hook-context"><span class="pulse-dot"></span><span id="live-count">Preview mode · submissions are stubbed</span></div>
+      </div>
+      <div class="hook-signature"><span>Zero Emission Fuels</span><span>SOLAR CHEMICALS · SIMPLIFIED</span></div>
+    </section>
+
+    <!-- Q1 -->
+    <section class="scene" id="scene-q1">
+      <div class="topbar">
+        <button class="back is-visible" data-goto="hook" aria-label="Back"><svg viewBox="0 0 24 24" fill="none"><path d="M15 4l-8 8 8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="progress"><span>1 / 4</span><div class="progress-bar"><i style="transform:scaleX(.25)"></i></div></div>
+      </div>
+      <div class="q-eyebrow">Question 01</div>
+      <h2 class="q-headline">Where will green H<span style="vertical-align:sub;font-size:.6em">2</span> land by 2030?</h2>
+      <p class="q-sub"><b>€ / kg</b> · best guess</p>
+      <div class="options" data-question="q1">
+        <button class="opt" data-value="lt2"><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Under €2</span><span class="hint">Aggressive</span></button>
+        <button class="opt" data-value="2to3"><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">€2 – €3</span><span class="hint">The consensus</span></button>
+        <button class="opt" data-value="3to5"><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">€3 – €5</span><span class="hint">Cautious</span></button>
+        <button class="opt" data-value="gt5"><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Over €5</span><span class="hint">Skeptical</span></button>
+      </div>
+    </section>
+
+    <!-- Q2 -->
+    <section class="scene" id="scene-q2">
+      <div class="topbar">
+        <button class="back is-visible" data-goto="q1" aria-label="Back"><svg viewBox="0 0 24 24" fill="none"><path d="M15 4l-8 8 8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="progress"><span>2 / 4</span><div class="progress-bar"><i style="transform:scaleX(.5)"></i></div></div>
+      </div>
+      <div class="q-eyebrow">Question 02</div>
+      <h2 class="q-headline">What's really blocking scale?</h2>
+      <p class="q-sub">Pick the one you'd name first</p>
+      <div class="options" data-question="q2">
+        <button class="opt" data-value="cost"><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Cost</span><span class="hint">€/kg parity</span></button>
+        <button class="opt" data-value="power"><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Power</span><span class="hint">Cheap renewables</span></button>
+        <button class="opt" data-value="electrolyzers"><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Electrolyzers</span><span class="hint">Supply, CAPEX</span></button>
+        <button class="opt" data-value="permitting"><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Permitting</span><span class="hint">Land, grid queues</span></button>
+        <button class="opt" data-value="demand"><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Demand</span><span class="hint">Offtake signal</span></button>
+      </div>
+    </section>
+
+    <!-- Q3 -->
+    <section class="scene" id="scene-q3">
+      <div class="topbar">
+        <button class="back is-visible" data-goto="q2" aria-label="Back"><svg viewBox="0 0 24 24" fill="none"><path d="M15 4l-8 8 8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="progress"><span>3 / 4</span><div class="progress-bar"><i style="transform:scaleX(.75)"></i></div></div>
+      </div>
+      <div class="q-eyebrow">Question 03</div>
+      <h2 class="q-headline">You'd seriously adopt at…</h2>
+      <p class="q-sub"><b>€ / kg</b> H<span style="vertical-align:sub;font-size:.8em">2</span></p>
+      <div class="options" data-question="q3">
+        <button class="opt" data-value="lt2"><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Under €2</span><span class="hint">Instant yes</span></button>
+        <button class="opt" data-value="2to3"><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">€2 – €3</span><span class="hint">Likely</span></button>
+        <button class="opt" data-value="3to5"><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">€3 – €5</span><span class="hint">Niche use</span></button>
+        <button class="opt" data-value="gt5"><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Over €5</span><span class="hint">Only mandated</span></button>
+        <button class="opt" data-value="not_us"><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Not us</span><span class="hint">Different molecule</span></button>
+      </div>
+    </section>
+
+    <!-- Q4 -->
+    <section class="scene" id="scene-q4">
+      <div class="topbar">
+        <button class="back is-visible" data-goto="q3" aria-label="Back"><svg viewBox="0 0 24 24" fill="none"><path d="M15 4l-8 8 8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="progress"><span>4 / 4</span><div class="progress-bar"><i style="transform:scaleX(1)"></i></div></div>
+      </div>
+      <div class="q-eyebrow">Question 04</div>
+      <h2 class="q-headline">Pilot by 2030?</h2>
+      <p class="q-sub">On your roadmap, honestly</p>
+      <div class="options" data-question="q4">
+        <button class="opt" data-value="yes"><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Yes</span><span class="hint">Board-ready</span></button>
+        <button class="opt" data-value="maybe"><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Maybe</span><span class="hint">Watching</span></button>
+        <button class="opt" data-value="no"><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">No</span><span class="hint">Not this cycle</span></button>
+      </div>
+    </section>
+
+    <!-- REVEAL -->
+    <section class="scene" id="scene-reveal">
+      <div class="reveal-inner">
+        <div class="topbar"><div class="wordmark"><span class="dot"></span>ZEF</div><div class="progress"><span id="rev-live">0 ANSWERED</span></div></div>
+        <div class="reveal-head">
+          <div class="reveal-kicker"><span class="bar"></span>Your pulse</div>
+          <h2 class="reveal-headline" id="reveal-headline"></h2>
+          <p class="reveal-sub" id="reveal-sub"></p>
+        </div>
+
+        <div class="chart" id="chart-q1" data-question="q1">
+          <div class="chart-title"><span>Q1 · €/kg by 2030</span><span class="tot">n = <span class="rev-n">0</span></span></div>
+          <div class="bars"></div>
+          <div class="zef-marker" data-marker-for="q1" hidden>
+            <div class="tick-line"></div>
+            <div><div class="kicker"></div><div class="value"></div></div>
+            <div class="red-pill"></div>
+          </div>
+        </div>
+
+        <button class="expand-trigger" id="expand-btn"><span>See all 4 charts</span><span class="chev">↓</span></button>
+        <div class="extra-charts" id="extra-charts">
+          <div class="chart" id="chart-q2" data-question="q2"><div class="chart-title"><span>Q2 · Biggest blocker</span><span class="tot">n = <span class="rev-n">0</span></span></div><div class="bars"></div></div>
+          <div class="chart" id="chart-q3" data-question="q3"><div class="chart-title"><span>Q3 · You'd adopt at…</span><span class="tot">n = <span class="rev-n">0</span></span></div><div class="bars"></div></div>
+          <div class="chart" id="chart-q4" data-question="q4"><div class="chart-title"><span>Q4 · Pilot by 2030?</span><span class="tot">n = <span class="rev-n">0</span></span></div><div class="bars"></div></div>
+        </div>
+
+        <div class="reveal-footer">
+          <button class="btn-ghost" data-goto="hook" data-reset="1">Start over</button>
+          <button class="btn-solid" data-goto="lead">Get the full benchmark →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- LEAD -->
+    <section class="scene" id="scene-lead">
+      <div class="topbar">
+        <button class="back is-visible" data-goto="reveal" aria-label="Back"><svg viewBox="0 0 24 24" fill="none"><path d="M15 4l-8 8 8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="progress"><span>Step 2</span></div>
+      </div>
+      <div class="lead-body">
+        <div class="lead-head">
+          <div class="lead-kicker"><span class="bar"></span>After the summit</div>
+          <h2 class="lead-headline">Want the full benchmark after the summit?</h2>
+          <p class="lead-sub">We'll send you the anonymized results + where ZEF lands in the data.</p>
+        </div>
+        <form id="lead-form">
+          <div class="field"><input type="email" id="lead-email" placeholder="you@company.com" autocomplete="email" inputmode="email" required></div>
+          <div class="chips" id="role-chips">
+            <button type="button" class="chip" data-role="investor">Investor</button>
+            <button type="button" class="chip" data-role="developer">Developer</button>
+            <button type="button" class="chip" data-role="offtaker">Offtaker</button>
+            <button type="button" class="chip" data-role="policy">Policy</button>
+            <button type="button" class="chip" data-role="other">Other</button>
+          </div>
+          <div class="chips-hint">Optional · helps us tailor the sample</div>
+          <button type="submit" class="lead-submit">Send it to me</button>
+          <div class="lead-error" id="lead-error" hidden></div>
+        </form>
+        <div class="success" id="lead-success">
+          <div class="check"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <p class="big">On the list. See you in the inbox.</p>
+          <p class="small">We'll send the anonymized WHS 2026 benchmark within 72h of the summit close.</p>
+          <a class="see" href="https://zef.tech" target="_blank" rel="noopener">See what ZEF does →</a>
+        </div>
+      </div>
+      <div class="lead-sig"><span>ZEF · Delft</span><span>NO SPAM · UNSUBSCRIBE ANY TIME</span></div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+/* Self-contained preview script — same logic as static/app.js but with
+   inline config and stubbed API calls. */
+
+const QUESTIONS = [
+  {
+    id: "q1", number: "01",
+    chart_title: "Q1 · €/kg by 2030",
+    options: [
+      {value: "lt2",  label: "Under €2",  hint: "Aggressive"},
+      {value: "2to3", label: "€2 – €3", hint: "The consensus"},
+      {value: "3to5", label: "€3 – €5", hint: "Cautious"},
+      {value: "gt5",  label: "Over €5",  hint: "Skeptical"},
+    ],
+    short_labels: {lt2:"< €2", "2to3":"€2–3", "3to5":"€3–5", gt5:"> €5"},
+  },
+  {
+    id: "q2", number: "02",
+    chart_title: "Q2 · Biggest blocker",
+    options: [
+      {value:"cost",label:"Cost",hint:"€/kg parity"},
+      {value:"power",label:"Power",hint:"Cheap renewables"},
+      {value:"electrolyzers",label:"Electrolyzers",hint:"Supply, CAPEX"},
+      {value:"permitting",label:"Permitting",hint:"Land, grid queues"},
+      {value:"demand",label:"Demand",hint:"Offtake signal"},
+    ],
+    short_labels: {cost:"Cost",power:"Power",electrolyzers:"Electrolyzers",permitting:"Permitting",demand:"Demand"},
+  },
+  {
+    id: "q3", number: "03",
+    chart_title: "Q3 · You'd adopt at…",
+    options: [
+      {value:"lt2",label:"Under €2",hint:"Instant yes"},
+      {value:"2to3",label:"€2 – €3",hint:"Likely"},
+      {value:"3to5",label:"€3 – €5",hint:"Niche use"},
+      {value:"gt5",label:"Over €5",hint:"Only mandated"},
+      {value:"not_us",label:"Not us",hint:"Different molecule"},
+    ],
+    short_labels: {lt2:"< €2","2to3":"€2–3","3to5":"€3–5",gt5:"> €5",not_us:"Not us"},
+  },
+  {
+    id: "q4", number: "04",
+    chart_title: "Q4 · Pilot by 2030?",
+    options: [{value:"yes",label:"Yes",hint:"Board-ready"},{value:"maybe",label:"Maybe",hint:"Watching"},{value:"no",label:"No",hint:"Not this cycle"}],
+    short_labels: {yes:"Yes",maybe:"Maybe",no:"No"},
+  },
+];
+const HOOKS = {
+  A: ["Green","hydrogen","at",{num:"€1.50/kg."},"No,","really."],
+  B: ["The","room","says",{num:"€4/kg."},"We","ship",{num:"€1.80/kg."}],
+  C: ["Everyone","says","green","H₂","at",{num:"€2/kg"},"by","2030.","What","if","it's","here","now?"],
+  D: ["Your","diesel","costs","more","than","our","hydrogen."],
+};
+const BENCHMARK = {question_id:"q1",kicker:"ZEF · Spain 2030",value:"€2.07",unit:"/kg",pill:"ACTUAL",bucket:"2to3",bucket_offset:0.07};
+let AGGREGATE = {
+  total: 842,
+  q1: {lt2:.09,"2to3":.29,"3to5":.41,gt5:.21},
+  q2: {cost:.31,power:.19,electrolyzers:.12,permitting:.24,demand:.14},
+  q3: {lt2:.44,"2to3":.33,"3to5":.14,gt5:.03,not_us:.06},
+  q4: {yes:.38,maybe:.47,no:.15},
+};
+
+const Q_IDS = QUESTIONS.map(q=>q.id);
+const SHORT = Object.fromEntries(QUESTIONS.map(q=>[q.id,q.short_labels||{}]));
+const VALUES = Object.fromEntries(QUESTIONS.map(q=>[q.id,q.options.map(o=>o.value)]));
+
+const state = {
+  current:'hook',
+  answers: Object.fromEntries(Q_IDS.map(id=>[id,null])),
+  sessionId: (crypto && crypto.randomUUID) ? crypto.randomUUID() : 'sess-'+Date.now(),
+  pollPosted:false,
+};
+
+function renderHook(key){
+  const words = HOOKS[key] || HOOKS.B;
+  const el = document.getElementById('hook-headline');
+  if(!el) return;
+  el.innerHTML='';
+  words.forEach((w,i)=>{
+    const span = document.createElement('span');
+    const isNum = typeof w === 'object';
+    span.className = 'word' + (isNum?' num':'');
+    span.textContent = isNum ? w.num : w;
+    span.style.transitionDelay = (i*30) + 'ms';
+    el.appendChild(span);
+  });
+  document.body.setAttribute('data-hook',key);
+}
+renderHook('B');
+
+function goto(id, opts={}){
+  if(opts.reset){
+    Q_IDS.forEach(q=>state.answers[q]=null);
+    state.pollPosted=false;
+    document.querySelectorAll('.opt').forEach(o=>o.classList.remove('is-locked'));
+    document.querySelectorAll('#role-chips .chip').forEach(c=>c.classList.remove('is-on'));
+    selectedRole=null;
+    document.getElementById('lead-form').style.display='';
+    document.getElementById('lead-success').classList.remove('is-on');
+  }
+  const cur = document.querySelector('.scene.is-active');
+  const next = document.getElementById('scene-'+id);
+  if(!next || next===cur) return;
+  if(cur){
+    cur.classList.remove('is-active');
+    cur.classList.add('is-exit-left');
+    setTimeout(()=>cur.classList.remove('is-exit-left'),340);
+  }
+  setTimeout(()=>{
+    next.classList.add('is-active');
+    next.scrollTop=0;
+    state.current=id;
+    if(id==='reveal') renderReveal();
+    if(id==='hook') renderHook(document.body.getAttribute('data-hook')||'B');
+    syncSelections();
+  },60);
+}
+
+document.querySelectorAll('[data-goto]').forEach(el=>{
+  el.addEventListener('click',()=>{
+    goto(el.getAttribute('data-goto'), {reset: el.getAttribute('data-reset')==='1'});
+  });
+});
+
+document.querySelectorAll('.options').forEach(group=>{
+  const qid = group.dataset.question;
+  group.querySelectorAll('.opt').forEach(opt=>{
+    opt.addEventListener('click',()=>{
+      group.querySelectorAll('.opt').forEach(o=>o.classList.remove('is-locked'));
+      opt.classList.add('is-locked');
+      state.answers[qid] = opt.dataset.value;
+      const idx = Q_IDS.indexOf(qid);
+      const isLast = idx === Q_IDS.length-1;
+      const nextId = isLast ? 'reveal' : Q_IDS[idx+1];
+      setTimeout(()=>goto(nextId),280);
+      if(isLast){
+        console.log('[preview] POST /api/poll', {sessionId:state.sessionId, answers:{...state.answers}});
+      }
+    });
+  });
+});
+
+function syncSelections(){
+  Object.entries(state.answers).forEach(([qid,v])=>{
+    const group = document.querySelector(`.options[data-question="${qid}"]`);
+    if(!group) return;
+    group.querySelectorAll('.opt').forEach(o=>o.classList.toggle('is-locked', !!v && o.dataset.value===v));
+  });
+}
+
+const PRICE_ORDER = ['lt2','2to3','3to5','gt5'];
+function computeInsight(){
+  const primary = QUESTIONS[0];
+  const g = state.answers[primary.id];
+  const data = AGGREGATE[primary.id]||{};
+  if(!g) return `Here's how the room answered <b>${primary.chart_title}</b>.`;
+  const isPriceQ = primary.options.every(o=>PRICE_ORDER.includes(o.value));
+  if(isPriceQ){
+    const idx = PRICE_ORDER.indexOf(g);
+    let higher=0,lower=0;
+    PRICE_ORDER.slice(idx+1).forEach(k=>higher+=(data[k]||0));
+    PRICE_ORDER.slice(0,idx).forEach(k=>lower+=(data[k]||0));
+    const same = data[g]||0;
+    if(g==='lt2'||g==='2to3') return `You're more optimistic than <span class="pct">${Math.round(higher*100)}%</span> of the room.`;
+    if(g==='gt5') return `<span class="pct">${Math.round(lower*100)}%</span> of the room is more optimistic than you.`;
+    return `You're with <span class="pct">${Math.round(same*100)}%</span> of the room.`;
+  }
+  return `You're with <span class="pct">${Math.round((data[g]||0)*100)}%</span> of the room.`;
+}
+
+function escapeHtml(s){return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');}
+
+function buildBarChart(container, qid, userAnswer){
+  const bars = container.querySelector('.bars');
+  if(!bars) return;
+  bars.innerHTML='';
+  const data = AGGREGATE[qid]||{};
+  const shortLabels = SHORT[qid]||{};
+  const keys = VALUES[qid] || Object.keys(data);
+  const max = Math.max(...keys.map(k=>data[k]||0),0.0001);
+  keys.forEach((k,i)=>{
+    const pct = data[k]||0;
+    const scaled = (pct/max)*100;
+    const isUser = k === userAnswer;
+    const row = document.createElement('div');
+    row.className = 'bar-row' + (isUser?' is-user':'');
+    const delay = (i*80) + (isUser?120:0);
+    row.innerHTML = `<div class="bar-label">${escapeHtml(shortLabels[k]||k)}</div><div class="bar-track"><div class="bar-fill" style="--d:${delay}ms"></div></div><div class="bar-pct" style="--d:${delay}ms">${Math.round(pct*100)}%</div>`;
+    bars.appendChild(row);
+    requestAnimationFrame(()=>{
+      setTimeout(()=>{ row.querySelector('.bar-fill').style.width = scaled+'%'; },40);
+    });
+  });
+  if(BENCHMARK && BENCHMARK.question_id===qid){
+    const marker = container.querySelector('.zef-marker');
+    if(marker){
+      marker.hidden=false;
+      marker.querySelector('.kicker').textContent = BENCHMARK.kicker||'';
+      marker.querySelector('.value').innerHTML = `${escapeHtml(BENCHMARK.value||'')}<span class="unit">${escapeHtml(BENCHMARK.unit||'')}</span>`;
+      marker.querySelector('.red-pill').textContent = BENCHMARK.pill||'';
+      const bucketIdx = keys.indexOf(BENCHMARK.bucket);
+      if(bucketIdx>=0){
+        const offset = Math.min(Math.max(BENCHMARK.bucket_offset||0,0),1);
+        const leftPct = (bucketIdx/keys.length + (offset/keys.length))*100;
+        const tickLine = marker.querySelector('.tick-line');
+        if(tickLine) tickLine.style.left = `calc(${leftPct.toFixed(1)}% + 12px)`;
+      }
+    }
+  }
+}
+
+function renderReveal(){
+  const primary = QUESTIONS[0];
+  document.getElementById('reveal-headline').innerHTML = computeInsight();
+  const total = AGGREGATE.total||0;
+  const totalLabel = total>0 ? `${total} people` : 'the room';
+  document.getElementById('reveal-sub').innerHTML = `Here's how ${totalLabel} answered <b>${primary.chart_title}</b>.` + (state.answers[primary.id] ? ` Yours is in red.` : '');
+  document.querySelectorAll('.chart .rev-n').forEach(el=>el.textContent=total);
+  document.getElementById('rev-live').textContent = total + ' ANSWERED';
+  QUESTIONS.forEach((q,i)=>{
+    const chart = document.getElementById('chart-'+q.id);
+    if(!chart) return;
+    buildBarChart(chart, q.id, state.answers[q.id]);
+    setTimeout(()=>chart.classList.add('is-revealed'), 150 + i*50);
+  });
+}
+
+const expandBtn = document.getElementById('expand-btn');
+if(expandBtn){
+  expandBtn.addEventListener('click',e=>{
+    const panel = document.getElementById('extra-charts');
+    const btn = e.currentTarget;
+    panel.classList.toggle('is-open');
+    btn.classList.toggle('is-open');
+    const labelSpan = btn.querySelector('span:not(.chev)');
+    if(labelSpan) labelSpan.textContent = panel.classList.contains('is-open') ? 'Collapse' : `See all ${QUESTIONS.length} charts`;
+  });
+}
+
+let selectedRole=null;
+document.querySelectorAll('#role-chips .chip').forEach(chip=>{
+  chip.addEventListener('click',()=>{
+    const r = chip.dataset.role;
+    if(selectedRole===r){ chip.classList.remove('is-on'); selectedRole=null; }
+    else{ document.querySelectorAll('#role-chips .chip').forEach(c=>c.classList.remove('is-on')); chip.classList.add('is-on'); selectedRole=r; }
+  });
+});
+
+document.getElementById('lead-form').addEventListener('submit',e=>{
+  e.preventDefault();
+  const email = document.getElementById('lead-email');
+  const v = email.value.trim();
+  if(!/^\S+@\S+\.\S+$/.test(v)){
+    email.classList.add('is-invalid');
+    setTimeout(()=>email.classList.remove('is-invalid'),1800);
+    return;
+  }
+  console.log('[preview] POST /api/lead', {sessionId:state.sessionId, email:v, role:selectedRole, consent:true});
+  document.getElementById('lead-form').style.display='none';
+  document.getElementById('lead-success').classList.add('is-on');
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.target && (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')) return;
+  if(e.key==='d'||e.key==='D'){
+    QUESTIONS.forEach(q=>state.answers[q.id]=q.options[Math.min(1,q.options.length-1)].value);
+    syncSelections();
+    goto('reveal');
+  }
+  if(e.key==='h'||e.key==='H') goto('hook',{reset:true});
+  const order = ['hook',...Q_IDS,'reveal','lead'];
+  if(e.key==='ArrowRight'){ const i=order.indexOf(state.current); if(i>=0&&i<order.length-1) goto(order[i+1]); }
+  if(e.key==='ArrowLeft'){ const i=order.indexOf(state.current); if(i>0) goto(order[i-1]); }
+});
+</script>
+</body>
+</html>
