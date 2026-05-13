@@ -176,8 +176,12 @@ LEAD_ROLES = [
 ]
 
 
-# Fallback aggregates shown when no submissions exist yet (or sheet is unreachable).
-# Values are shares (0..1) per option `value`.
+# Show the fallback aggregate until the sheet has at least this many real submissions.
+# Under the threshold, the reveal chart uses FALLBACK_AGGREGATE; at/above it, real data.
+LIVE_THRESHOLD = 5
+
+# Fallback aggregates shown until LIVE_THRESHOLD real submissions exist
+# (also used if the sheet is unreachable). Values are shares (0..1) per option `value`.
 FALLBACK_AGGREGATE = {
     "total": 0,
     "q1": {"lt2": 0.09, "2to3": 0.29, "3to5": 0.41, "gt5": 0.21},

@@ -95,12 +95,14 @@ def build_aggregate() -> dict[str, Any]:
     for q in config.POLL_QUESTIONS:
         base[q["id"]] = {o["value"]: 0.0 for o in q["options"]}
 
-    src = live if (live and live.get("total", 0) > 0) else config.FALLBACK_AGGREGATE
+    live_total = live.get("total", 0) if live else 0
+    use_live = bool(live) and live_total >= config.LIVE_THRESHOLD
+    src = live if use_live else config.FALLBACK_AGGREGATE
     base["total"] = src.get("total", 0)
     for q in config.POLL_QUESTIONS:
         for opt in q["options"]:
             base[q["id"]][opt["value"]] = float(src.get(q["id"], {}).get(opt["value"], 0))
-    base["source"] = "sheet" if (live and live.get("total", 0) > 0) else "demo"
+    base["source"] = "sheet" if use_live else "demo"
     return base
 
 
