@@ -187,6 +187,30 @@ body{
   0%{transform:scale(1)} 40%{transform:scale(.98)} 100%{transform:scale(1)}
 }
 
+/* ───── Multi-select variant ───── */
+.options.multi .opt .tick{border-radius:4px}
+.opt.is-disabled{opacity:.42;cursor:not-allowed}
+.opt.is-disabled:hover{border-color:var(--grey-line);background:transparent}
+
+.continue-btn{
+  margin-top:14px;width:100%;background:var(--ink);color:var(--bg);
+  border:none;border-radius:14px;padding:18px 22px;
+  font-family:var(--display);font-weight:500;font-size:16px;letter-spacing:-.01em;
+  cursor:pointer;transition:background .2s,opacity .2s,transform .12s var(--ease);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+.continue-btn:disabled{opacity:.35;cursor:not-allowed}
+.continue-btn:not(:disabled):hover{background:#000}
+.continue-btn:not(:disabled):active{transform:scale(.985)}
+.continue-btn .continue-meta{
+  font-family:var(--body);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  opacity:.6;font-variant-numeric:tabular-nums;
+}
+.chart-note{
+  font-family:var(--body);font-size:10.5px;color:var(--muted);
+  margin-top:8px;letter-spacing:.02em;line-height:1.4;
+}
+
 /* ───── REVEAL ───── */
 #scene-reveal .reveal-inner{display:flex;flex-direction:column;min-height:100%}
 .reveal-head{margin:20px 0 24px}

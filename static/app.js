@@ -9,14 +9,21 @@ const BENCHMARK = JSON.parse(document.getElementById('cfg-benchmark').textConten
 let AGGREGATE   = JSON.parse(document.getElementById('cfg-aggregate').textContent);
 
 const Q_IDS = QUESTIONS.map(q => q.id);
+const Q_BY_ID = Object.fromEntries(QUESTIONS.map(q => [q.id, q]));
 const SHORT = Object.fromEntries(QUESTIONS.map(q => [q.id, q.short_labels || {}]));
 const VALUES = Object.fromEntries(QUESTIONS.map(q => [q.id, q.options.map(o => o.value)]));
+const IS_MULTI = qid => !!(Q_BY_ID[qid] && Q_BY_ID[qid].multi);
+
+function defaultAnswer(qid) {
+  return IS_MULTI(qid) ? [] : null;
+}
 
 const state = {
   current: 'hook',
-  answers: Object.fromEntries(Q_IDS.map(id => [id, null])),
+  answers: Object.fromEntries(Q_IDS.map(id => [id, defaultAnswer(id)])),
   sessionId: (crypto && crypto.randomUUID) ? crypto.randomUUID() : 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2,8),
   pollPosted: false,
+  extraChartsRendered: false,
 };
 
 /* ── Hook headlines ──────────────────────────────────── */
@@ -35,18 +42,38 @@ function renderHook(key) {
   });
   document.body.setAttribute('data-hook', key);
 }
-renderHook(document.body.getAttribute('data-hook') || 'B');
+renderHook(document.body.getAttribute('data-hook') || 'C');
 
 /* ── Scene navigation ────────────────────────────────── */
 function goto(id, opts = {}) {
   if (opts.reset) {
-    Q_IDS.forEach(qid => state.answers[qid] = null);
+    Q_IDS.forEach(qid => state.answers[qid] = defaultAnswer(qid));
     state.pollPosted = false;
-    document.querySelectorAll('.opt').forEach(o => o.classList.remove('is-locked'));
+    state.extraChartsRendered = false;
+    document.querySelectorAll('.opt').forEach(o => {
+      o.classList.remove('is-locked');
+      o.classList.remove('is-disabled');
+    });
+    document.querySelectorAll('.continue-btn').forEach(btn => {
+      btn.disabled = true;
+      const c = btn.querySelector('.count');
+      if (c) c.textContent = '0';
+    });
     document.querySelectorAll('#role-chips .chip').forEach(c => c.classList.remove('is-on'));
     selectedRole = null;
     document.getElementById('lead-form').style.display = '';
     document.getElementById('lead-success').classList.remove('is-on');
+    const errEl = document.getElementById('lead-error');
+    if (errEl) errEl.hidden = true;
+    document.getElementById('lead-email').value = '';
+    const panel = document.getElementById('extra-charts');
+    if (panel) panel.classList.remove('is-open');
+    const expBtn = document.getElementById('expand-btn');
+    if (expBtn) {
+      expBtn.classList.remove('is-open');
+      const labelSpan = expBtn.querySelector('span:not(.chev)');
+      if (labelSpan) labelSpan.textContent = `See all ${QUESTIONS.length} charts`;
+    }
   }
   const cur = document.querySelector('.scene.is-active');
   const next = document.getElementById('scene-' + id);
@@ -62,58 +89,119 @@ function goto(id, opts = {}) {
     next.scrollTop = 0;
     state.current = id;
     if (id === 'reveal') renderReveal();
-    if (id === 'hook') renderHook(document.body.getAttribute('data-hook') || 'B');
+    if (id === 'hook') renderHook(document.body.getAttribute('data-hook') || 'C');
     syncSelections();
   }, 60);
 }
 
 /* ── data-goto wiring ────────────────────────────────── */
 document.querySelectorAll('[data-goto]').forEach(el => {
-  el.addEventListener('click', e => {
+  el.addEventListener('click', () => {
     const target = el.getAttribute('data-goto');
     const reset = el.getAttribute('data-reset') === '1';
     goto(target, { reset });
   });
 });
 
-/* ── Option tap → lock-in + auto-advance ─────────────── */
+/* ── Option tap → lock-in (single) or toggle (multi) ─── */
 document.querySelectorAll('.options').forEach(group => {
   const qid = group.dataset.question;
+  const isMulti = group.dataset.multi === '1';
+  const maxSelect = parseInt(group.dataset.maxSelect || '1', 10);
+
   group.querySelectorAll('.opt').forEach(opt => {
     opt.addEventListener('click', () => {
-      group.querySelectorAll('.opt').forEach(o => o.classList.remove('is-locked'));
-      opt.classList.add('is-locked');
-      state.answers[qid] = opt.dataset.value;
+      if (isMulti) {
+        const v = opt.dataset.value;
+        const arr = Array.isArray(state.answers[qid]) ? [...state.answers[qid]] : [];
+        const idx = arr.indexOf(v);
+        if (idx >= 0) {
+          arr.splice(idx, 1);
+          opt.classList.remove('is-locked');
+        } else {
+          if (arr.length >= maxSelect) return; // cap reached, ignore
+          arr.push(v);
+          opt.classList.add('is-locked');
+        }
+        state.answers[qid] = arr;
+        updateMultiState(group);
+      } else {
+        group.querySelectorAll('.opt').forEach(o => o.classList.remove('is-locked'));
+        opt.classList.add('is-locked');
+        state.answers[qid] = opt.dataset.value;
 
-      const idx = Q_IDS.indexOf(qid);
-      const isLast = idx === Q_IDS.length - 1;
-      const nextId = isLast ? 'reveal' : Q_IDS[idx + 1];
-
-      setTimeout(() => goto(nextId), 280);
-
-      if (isLast) postPoll();
+        const i = Q_IDS.indexOf(qid);
+        const isLast = i === Q_IDS.length - 1;
+        const nextId = isLast ? 'reveal' : Q_IDS[i + 1];
+        setTimeout(() => goto(nextId), 280);
+        if (isLast) postPoll();
+      }
     });
+  });
+});
+
+function updateMultiState(group) {
+  const qid = group.dataset.question;
+  const maxSelect = parseInt(group.dataset.maxSelect || '1', 10);
+  const arr = Array.isArray(state.answers[qid]) ? state.answers[qid] : [];
+  const atCap = arr.length >= maxSelect;
+  group.querySelectorAll('.opt').forEach(opt => {
+    const picked = arr.includes(opt.dataset.value);
+    opt.classList.toggle('is-disabled', atCap && !picked);
+  });
+  // Continue button below this scene
+  const scene = group.closest('.scene');
+  const btn = scene && scene.querySelector('.continue-btn[data-question="' + qid + '"]');
+  if (btn) {
+    btn.disabled = arr.length === 0;
+    const c = btn.querySelector('.count');
+    if (c) c.textContent = String(arr.length);
+  }
+}
+
+/* ── Continue buttons (multi-select scenes) ────────── */
+document.querySelectorAll('.continue-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const qid = btn.dataset.question;
+    if (btn.disabled) return;
+    const i = Q_IDS.indexOf(qid);
+    const isLast = i === Q_IDS.length - 1;
+    const nextId = isLast ? 'reveal' : Q_IDS[i + 1];
+    goto(nextId);
+    if (isLast) postPoll();
   });
 });
 
 /* ── Restore selections when revisiting ──────────────── */
 function syncSelections() {
-  Object.entries(state.answers).forEach(([qid, v]) => {
-    const group = document.querySelector(`.options[data-question="${qid}"]`);
-    if (!group) return;
-    group.querySelectorAll('.opt').forEach(o => {
-      o.classList.toggle('is-locked', !!v && o.dataset.value === v);
-    });
+  document.querySelectorAll('.options').forEach(group => {
+    const qid = group.dataset.question;
+    const v = state.answers[qid];
+    const isMulti = group.dataset.multi === '1';
+    if (isMulti) {
+      const arr = Array.isArray(v) ? v : [];
+      group.querySelectorAll('.opt').forEach(o => o.classList.toggle('is-locked', arr.includes(o.dataset.value)));
+      updateMultiState(group);
+    } else {
+      group.querySelectorAll('.opt').forEach(o => o.classList.toggle('is-locked', !!v && o.dataset.value === v));
+    }
   });
 }
 
 /* ════════════════════════════════════════════════════════════════
    API calls
    ════════════════════════════════════════════════════════════════ */
+function allAnswered() {
+  return Q_IDS.every(id => {
+    const v = state.answers[id];
+    if (IS_MULTI(id)) return Array.isArray(v) && v.length > 0;
+    return !!v;
+  });
+}
+
 async function postPoll() {
   if (state.pollPosted) return;
-  // require all answers
-  if (Q_IDS.some(id => !state.answers[id])) return;
+  if (!allAnswered()) return;
   state.pollPosted = true;
   try {
     const r = await fetch('/api/poll', {
@@ -127,11 +215,10 @@ async function postPoll() {
       }),
     });
     if (!r.ok) throw new Error('poll failed');
-    // refresh aggregate so reveal reflects the new submission
     fetchAggregate();
   } catch (err) {
     console.warn('[poll]', err);
-    state.pollPosted = false; // allow retry
+    state.pollPosted = false;
   }
 }
 
@@ -164,7 +251,7 @@ async function postLead(payload) {
    REVEAL
    ════════════════════════════════════════════════════════════════ */
 
-const PRICE_ORDER = ['lt2', '2to3', '3to5', 'gt5'];
+const PRICE_ORDER = ['lt2', '2to3', '3to5', '5to8', 'gt8'];
 
 function computeInsight() {
   const primary = QUESTIONS[0];
@@ -172,7 +259,6 @@ function computeInsight() {
   const data = AGGREGATE[primary.id] || {};
   if (!g) return `Here's how the room answered <b>${primary.chart_title}</b>.`;
 
-  // Special-case the price ordering if it matches
   const isPriceQ = primary.options.every(o => PRICE_ORDER.includes(o.value));
   if (isPriceQ) {
     const idx = PRICE_ORDER.indexOf(g);
@@ -181,19 +267,24 @@ function computeInsight() {
     PRICE_ORDER.slice(0, idx).forEach(k => lower += (data[k] || 0));
     const same = data[g] || 0;
     if (g === 'lt2' || g === '2to3') {
-      const pct = Math.round(higher * 100);
-      return `You're more optimistic than <span class="pct">${pct}%</span> of the room.`;
+      return `You're more optimistic than <span class="pct">${Math.round(higher * 100)}%</span> of the room.`;
     }
-    if (g === 'gt5') {
-      const pct = Math.round(lower * 100);
-      return `<span class="pct">${pct}%</span> of the room is more optimistic than you.`;
+    if (g === 'gt8' || g === '5to8') {
+      return `<span class="pct">${Math.round(lower * 100)}%</span> of the room is more optimistic than you.`;
     }
-    const pct = Math.round(same * 100);
-    return `You're with <span class="pct">${pct}%</span> of the room.`;
+    return `You're with <span class="pct">${Math.round(same * 100)}%</span> of the room.`;
   }
-  // Generic fallback: show what share picked your answer
   const pct = Math.round((data[g] || 0) * 100);
   return `You're with <span class="pct">${pct}%</span> of the room.`;
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
 function buildBarChart(container, qid, userAnswer) {
@@ -206,10 +297,12 @@ function buildBarChart(container, qid, userAnswer) {
   const keys = VALUES[qid] || Object.keys(data);
   const max = Math.max(...keys.map(k => data[k] || 0), 0.0001);
 
+  const userSet = new Set(Array.isArray(userAnswer) ? userAnswer : (userAnswer ? [userAnswer] : []));
+
   keys.forEach((k, i) => {
     const pct = data[k] || 0;
     const scaled = (pct / max) * 100;
-    const isUser = k === userAnswer;
+    const isUser = userSet.has(k);
     const row = document.createElement('div');
     row.className = 'bar-row' + (isUser ? ' is-user' : '');
     const delay = (i * 80) + (isUser ? 120 : 0);
@@ -226,7 +319,6 @@ function buildBarChart(container, qid, userAnswer) {
     });
   });
 
-  // Position benchmark marker if this chart matches
   if (BENCHMARK && BENCHMARK.question_id === qid) {
     const marker = container.querySelector('.zef-marker');
     if (marker) {
@@ -236,12 +328,9 @@ function buildBarChart(container, qid, userAnswer) {
       valueEl.innerHTML = `${escapeHtml(BENCHMARK.value || '')}<span class="unit">${escapeHtml(BENCHMARK.unit || '')}</span>`;
       marker.querySelector('.red-pill').textContent = BENCHMARK.pill || '';
 
-      // Compute tick-line horizontal position over the bar track of the bucket
       const bucketIdx = keys.indexOf(BENCHMARK.bucket);
       if (bucketIdx >= 0) {
         const offset = Math.min(Math.max(BENCHMARK.bucket_offset || 0, 0), 1);
-        // Each bar-row track sits in column 2 of the grid; estimate visual position.
-        // Use a rough percentage based on bucket order (each bucket spans 100/keys.length of the chart).
         const leftPct = (bucketIdx / keys.length + (offset / keys.length)) * 100;
         const tickLine = marker.querySelector('.tick-line');
         if (tickLine) tickLine.style.left = `calc(${leftPct.toFixed(1)}% + 12px)`;
@@ -262,15 +351,37 @@ function renderReveal() {
   document.querySelectorAll('.chart .rev-n').forEach(el => el.textContent = total);
   document.getElementById('rev-live').textContent = (total || 0) + ' ANSWERED';
 
-  QUESTIONS.forEach((q, i) => {
+  // Reset extra-charts panel each time the reveal mounts
+  const panel = document.getElementById('extra-charts');
+  if (panel) panel.classList.remove('is-open');
+  const expBtn = document.getElementById('expand-btn');
+  if (expBtn) {
+    expBtn.classList.remove('is-open');
+    const labelSpan = expBtn.querySelector('span:not(.chev)');
+    if (labelSpan) labelSpan.textContent = `See all ${QUESTIONS.length} charts`;
+  }
+  state.extraChartsRendered = false;
+
+  // Render the primary chart now; defer the rest until the panel opens.
+  const chart = document.getElementById('chart-' + primary.id);
+  if (chart) {
+    buildBarChart(chart, primary.id, state.answers[primary.id]);
+    setTimeout(() => chart.classList.add('is-revealed'), 150);
+  }
+}
+
+function renderExtraCharts() {
+  if (state.extraChartsRendered) return;
+  QUESTIONS.slice(1).forEach((q, i) => {
     const chart = document.getElementById('chart-' + q.id);
     if (!chart) return;
     buildBarChart(chart, q.id, state.answers[q.id]);
-    setTimeout(() => chart.classList.add('is-revealed'), 150 + i * 50);
+    setTimeout(() => chart.classList.add('is-revealed'), 60 + i * 60);
   });
+  state.extraChartsRendered = true;
 }
 
-/* Expand extra charts */
+/* Expand extra charts (render lazily on first open) */
 const expandBtn = document.getElementById('expand-btn');
 if (expandBtn) {
   expandBtn.addEventListener('click', e => {
@@ -283,6 +394,10 @@ if (expandBtn) {
       labelSpan.textContent = panel.classList.contains('is-open')
         ? 'Collapse'
         : `See all ${QUESTIONS.length} charts`;
+    }
+    if (panel.classList.contains('is-open')) {
+      // Build bars now; transitions fire correctly on visible elements.
+      renderExtraCharts();
     }
   });
 }
@@ -339,22 +454,15 @@ document.getElementById('lead-form').addEventListener('submit', async e => {
 });
 
 /* ════════════════════════════════════════════════════════════════
-   Utility
+   Demo hotkeys
    ════════════════════════════════════════════════════════════════ */
-function escapeHtml(s) {
-  return String(s)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
-
-/* Demo hotkeys: d = jump to reveal with fake answers, h = home, arrows = step */
 document.addEventListener('keydown', e => {
   if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
   if (e.key === 'd' || e.key === 'D') {
-    QUESTIONS.forEach(q => state.answers[q.id] = q.options[Math.min(1, q.options.length - 1)].value);
+    QUESTIONS.forEach(q => {
+      const second = q.options[Math.min(1, q.options.length - 1)].value;
+      state.answers[q.id] = q.multi ? [q.options[0].value, second] : second;
+    });
     syncSelections();
     goto('reveal');
   }
@@ -370,5 +478,5 @@ document.addEventListener('keydown', e => {
   }
 });
 
-/* Refresh aggregate on load so the hook shows live counts where possible */
+/* Refresh aggregate on load */
 fetchAggregate();

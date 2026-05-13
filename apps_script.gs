@@ -5,6 +5,9 @@
  *   doPost  →  Append a submission row to the "Submissions" tab.
  *   doGet   →  Return live aggregate shares for the reveal chart.
  *
+ * Multi-select questions: values are stored as comma-separated strings in a
+ * single column (e.g. "power,electrolyzers,epc"). Aggregate counts each token.
+ *
  * Setup (one time):
  *   1. Open your Google Sheet.
  *   2. Extensions → Apps Script.
@@ -13,14 +16,15 @@
  *        Execute as: Me
  *        Who has access: Anyone
  *      Authorize when prompted. Copy the /exec URL.
- *   5. Paste that URL into the FastAPI .env as APPS_SCRIPT_URL.
  *
- * To change which questions are tracked: edit QUESTION_IDS below to match
- * the `id` values in zef-poll/config.py.
+ * Updating: when QUESTION_IDS or MULTI_QUESTION_IDS changes here, Deploy →
+ * Manage deployments → ✏️ on the active deployment → Version: New version →
+ * Deploy.
  */
 
 const SHEET_NAME = 'Submissions';
-const QUESTION_IDS = ['q1', 'q2', 'q3', 'q4'];
+const QUESTION_IDS = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'];
+const MULTI_QUESTION_IDS = ['q2'];
 
 const HEADERS = [
   'Timestamp',
@@ -61,7 +65,11 @@ function doPost(e) {
       payload.sessionId || '',
       payload.email || '',
       payload.role || '',
-      ...QUESTION_IDS.map(id => payload[id] || ''),
+      ...QUESTION_IDS.map(id => {
+        const v = payload[id];
+        if (Array.isArray(v)) return v.join(',');
+        return v == null ? '' : String(v);
+      }),
       payload.source || '',
       payload.consent === true ? 'yes' : (payload.consent === false ? 'no' : ''),
       (payload.userAgent || '').toString().slice(0, 250),
@@ -81,7 +89,6 @@ function doGet(e) {
     if (!sheet || sheet.getLastRow() < 2) return jsonOut_(empty);
 
     const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, HEADERS.length).getValues();
-    // Column indices
     const typeCol = HEADERS.indexOf('Type');
     const qCols = QUESTION_IDS.map(id => HEADERS.indexOf(id));
 
@@ -93,9 +100,15 @@ function doGet(e) {
       if (r[typeCol] !== 'poll') return;
       total += 1;
       QUESTION_IDS.forEach((id, i) => {
-        const v = (r[qCols[i]] || '').toString().trim();
-        if (!v) return;
-        counts[id][v] = (counts[id][v] || 0) + 1;
+        const raw = (r[qCols[i]] || '').toString().trim();
+        if (!raw) return;
+        if (MULTI_QUESTION_IDS.indexOf(id) >= 0) {
+          raw.split(',').map(s => s.trim()).filter(Boolean).forEach(v => {
+            counts[id][v] = (counts[id][v] || 0) + 1;
+          });
+        } else {
+          counts[id][raw] = (counts[id][raw] || 0) + 1;
+        }
       });
     });
 

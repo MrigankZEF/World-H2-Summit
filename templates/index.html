@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#F5F2EE">
 <title>{{ site_title }}</title>
-<meta name="description" content="A live pulse of the room. Four questions. One chart. The benchmark where ZEF actually ships.">
+<meta name="description" content="A live pulse of the room. Six questions. One chart. See where you stand.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -50,6 +50,7 @@
     {% for q in questions %}
     {% set idx = loop.index %}
     {% set prev = 'hook' if loop.first else questions[loop.index0 - 1].id %}
+    {% set is_multi = q.get('multi') %}
     <section class="scene" id="scene-{{ q.id }}">
       <div class="topbar">
         <button class="back is-visible" data-goto="{{ prev }}" aria-label="Back">
@@ -63,7 +64,9 @@
       <div class="q-eyebrow">Question {{ q.number }}</div>
       <h2 class="q-headline">{{ q.headline|safe }}</h2>
       <p class="q-sub">{{ q.sub|safe }}</p>
-      <div class="options" data-question="{{ q.id }}">
+      <div class="options {% if is_multi %}multi{% endif %}"
+           data-question="{{ q.id }}"
+           {% if is_multi %}data-multi="1" data-max-select="{{ q.get('max_select', q.options|length) }}"{% endif %}>
         {% for opt in q.options %}
         <button class="opt" data-value="{{ opt.value }}">
           <span class="tick">
@@ -74,6 +77,12 @@
         </button>
         {% endfor %}
       </div>
+      {% if is_multi %}
+      <button class="continue-btn" data-question="{{ q.id }}" disabled>
+        <span class="continue-label">Continue</span>
+        <span class="continue-meta"><span class="count">0</span> / {{ q.get('max_select', q.options|length) }}</span>
+      </button>
+      {% endif %}
     </section>
     {% endfor %}
 
@@ -98,7 +107,6 @@
             <span class="tot">n = <span class="rev-n">0</span></span>
           </div>
           <div class="bars"></div>
-          {# Benchmark marker injected by JS if BENCHMARK.question_id matches #}
           <div class="zef-marker" data-marker-for="{{ primary.id }}" hidden>
             <div class="tick-line"></div>
             <div>
@@ -123,6 +131,7 @@
               <span class="tot">n = <span class="rev-n">0</span></span>
             </div>
             <div class="bars"></div>
+            {% if q.get('multi') %}<div class="chart-note">% of respondents who picked each &middot; can sum to &gt;100%</div>{% endif %}
           </div>
           {% endif %}
           {% endfor %}

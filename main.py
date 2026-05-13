@@ -42,7 +42,8 @@ class PollSubmission(BaseModel):
     sessionId: str = Field(min_length=1, max_length=64)
     submittedAt: str | None = None
     source: str | None = None
-    answers: dict[str, str]
+    # Values may be str (single-select) or list[str] (multi-select).
+    answers: dict[str, Any]
 
 
 class LeadSubmission(BaseModel):
@@ -67,16 +68,42 @@ def valid_values(qid: str) -> set[str]:
     return set()
 
 
-def validate_answers(answers: dict[str, str]) -> dict[str, str]:
-    cleaned: dict[str, str] = {}
+def validate_answers(answers: dict[str, Any]) -> dict[str, Any]:
+    """Validate poll payload. Single-select fields become str; multi become list[str]."""
+    cleaned: dict[str, Any] = {}
     for q in config.POLL_QUESTIONS:
-        v = answers.get(q["id"])
-        if not v or v not in valid_values(q["id"]):
-            raise HTTPException(
-                status_code=400,
-                detail=f"Missing or invalid answer for {q['id']}.",
-            )
-        cleaned[q["id"]] = v
+        qid = q["id"]
+        valid = valid_values(qid)
+        v = answers.get(qid)
+
+        if q.get("multi"):
+            if not isinstance(v, list) or not v:
+                raise HTTPException(status_code=400, detail=f"Missing answer for {qid}.")
+            max_sel = int(q.get("max_select") or len(q["options"]))
+            if len(v) > max_sel:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Too many selections for {qid} (max {max_sel}).",
+                )
+            seen: set[str] = set()
+            ordered: list[str] = []
+            for item in v:
+                if not isinstance(item, str) or item not in valid:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid value '{item}' for {qid}.",
+                    )
+                if item not in seen:
+                    seen.add(item)
+                    ordered.append(item)
+            cleaned[qid] = ordered
+        else:
+            if not isinstance(v, str) or v not in valid:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Missing or invalid answer for {qid}.",
+                )
+            cleaned[qid] = v
     return cleaned
 
 
