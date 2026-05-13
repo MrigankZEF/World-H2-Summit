@@ -125,7 +125,8 @@ def build_aggregate() -> dict[str, Any]:
     live_total = live.get("total", 0) if live else 0
     use_live = bool(live) and live_total >= config.LIVE_THRESHOLD
     src = live if use_live else config.FALLBACK_AGGREGATE
-    base["total"] = src.get("total", 0)
+    base["total"] = live_total  # always the real sheet count, never the fallback's 250
+    base["threshold"] = config.LIVE_THRESHOLD
     for q in config.POLL_QUESTIONS:
         for opt in q["options"]:
             base[q["id"]][opt["value"]] = float(src.get(q["id"], {}).get(opt["value"], 0))

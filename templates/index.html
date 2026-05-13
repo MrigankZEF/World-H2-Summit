@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/styles.css?v=3">
+<link rel="stylesheet" href="/static/styles.css?v=4">
 </head>
 <body data-hook="{{ default_hook }}">
 
@@ -107,6 +107,7 @@
             <span class="tot">n = <span class="rev-n">0</span></span>
           </div>
           <div class="bars"></div>
+          <div class="chart-note seed-note" hidden>Seed distribution &middot; chart goes live after <span class="threshold-n">5</span> responses</div>
           <div class="zef-marker" data-marker-for="{{ primary.id }}" hidden>
             <div class="tick-line"></div>
             <div>
@@ -117,26 +118,9 @@
           </div>
         </div>
 
-        {% if questions|length > 1 %}
-        <button class="expand-trigger" id="expand-btn">
-          <span>See all {{ questions|length }} charts</span>
-          <span class="chev">↓</span>
-        </button>
-        <div class="extra-charts" id="extra-charts">
-          {% for q in questions %}
-          {% if not loop.first %}
-          <div class="chart" id="chart-{{ q.id }}" data-question="{{ q.id }}">
-            <div class="chart-title">
-              <span>{{ q.chart_title|safe }}</span>
-              <span class="tot">n = <span class="rev-n">0</span></span>
-            </div>
-            <div class="bars"></div>
-            {% if q.get('multi') %}<div class="chart-note">% of respondents who picked each &middot; can sum to &gt;100%</div>{% endif %}
-          </div>
-          {% endif %}
-          {% endfor %}
+        <div class="reveal-cta-note">
+          The full benchmark — all 6 questions, broken down by role — is sent by email after the summit.
         </div>
-        {% endif %}
 
         <div class="reveal-footer">
           <button class="btn-ghost" data-goto="hook" data-reset="1">Start over</button>
@@ -200,6 +184,6 @@
 <script id="cfg-hooks"       type="application/json">{{ hooks_json | safe }}</script>
 <script id="cfg-benchmark"   type="application/json">{{ benchmark_json | safe }}</script>
 <script id="cfg-aggregate"   type="application/json">{{ initial_aggregate_json | safe }}</script>
-<script src="/static/app.js?v=3" defer></script>
+<script src="/static/app.js?v=4" defer></script>
 </body>
 </html>

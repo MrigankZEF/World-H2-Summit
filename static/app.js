@@ -23,7 +23,6 @@ const state = {
   answers: Object.fromEntries(Q_IDS.map(id => [id, defaultAnswer(id)])),
   sessionId: (crypto && crypto.randomUUID) ? crypto.randomUUID() : 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2,8),
   pollPosted: false,
-  extraChartsRendered: false,
 };
 
 /* ── Hook headlines ──────────────────────────────────── */
@@ -49,7 +48,6 @@ function goto(id, opts = {}) {
   if (opts.reset) {
     Q_IDS.forEach(qid => state.answers[qid] = defaultAnswer(qid));
     state.pollPosted = false;
-    state.extraChartsRendered = false;
     document.querySelectorAll('.opt').forEach(o => {
       o.classList.remove('is-locked');
       o.classList.remove('is-disabled');
@@ -66,14 +64,6 @@ function goto(id, opts = {}) {
     const errEl = document.getElementById('lead-error');
     if (errEl) errEl.hidden = true;
     document.getElementById('lead-email').value = '';
-    const panel = document.getElementById('extra-charts');
-    if (panel) panel.classList.remove('is-open');
-    const expBtn = document.getElementById('expand-btn');
-    if (expBtn) {
-      expBtn.classList.remove('is-open');
-      const labelSpan = expBtn.querySelector('span:not(.chev)');
-      if (labelSpan) labelSpan.textContent = `See all ${QUESTIONS.length} charts`;
-    }
   }
   const cur = document.querySelector('.scene.is-active');
   const next = document.getElementById('scene-' + id);
@@ -343,63 +333,32 @@ function renderReveal() {
   const primary = QUESTIONS[0];
   document.getElementById('reveal-headline').innerHTML = computeInsight();
   const total = AGGREGATE.total || 0;
-  const totalLabel = total > 0 ? `${total} people` : 'the room';
-  document.getElementById('reveal-sub').innerHTML =
-    `Here's how ${totalLabel} answered <b>${primary.chart_title}</b>.` +
-    (state.answers[primary.id] ? ` Yours is in red.` : '');
+  const isPreview = AGGREGATE.source !== 'sheet';
+  const totalLabel = total > 0 ? `${total} ${total === 1 ? 'person has' : 'people have'} answered` : 'no one has answered yet';
+  document.getElementById('reveal-sub').innerHTML = isPreview
+    ? `${totalLabel} so far. Seed distribution shown until the threshold is reached.`
+    : `Here's how ${total} people answered <b>${primary.chart_title}</b>.` +
+      (state.answers[primary.id] ? ` Yours is in red.` : '');
 
   document.querySelectorAll('.chart .rev-n').forEach(el => el.textContent = total);
-  document.getElementById('rev-live').textContent = (total || 0) + ' ANSWERED';
+  document.getElementById('rev-live').textContent = isPreview
+    ? `PREVIEW · ${total} / ${AGGREGATE.threshold || 5}`
+    : `${total} ANSWERED`;
 
-  // Reset extra-charts panel each time the reveal mounts
-  const panel = document.getElementById('extra-charts');
-  if (panel) panel.classList.remove('is-open');
-  const expBtn = document.getElementById('expand-btn');
-  if (expBtn) {
-    expBtn.classList.remove('is-open');
-    const labelSpan = expBtn.querySelector('span:not(.chev)');
-    if (labelSpan) labelSpan.textContent = `See all ${QUESTIONS.length} charts`;
+  // Toggle the seed-distribution note on the Q1 chart
+  const seedNote = document.querySelector('#chart-' + primary.id + ' .seed-note');
+  if (seedNote) {
+    seedNote.hidden = !isPreview;
+    const thr = seedNote.querySelector('.threshold-n');
+    if (thr) thr.textContent = AGGREGATE.threshold || 5;
   }
-  state.extraChartsRendered = false;
 
-  // Render the primary chart now; defer the rest until the panel opens.
+  // Render the Q1 chart
   const chart = document.getElementById('chart-' + primary.id);
   if (chart) {
     buildBarChart(chart, primary.id, state.answers[primary.id]);
     setTimeout(() => chart.classList.add('is-revealed'), 150);
   }
-}
-
-function renderExtraCharts() {
-  if (state.extraChartsRendered) return;
-  QUESTIONS.slice(1).forEach((q, i) => {
-    const chart = document.getElementById('chart-' + q.id);
-    if (!chart) return;
-    buildBarChart(chart, q.id, state.answers[q.id]);
-    setTimeout(() => chart.classList.add('is-revealed'), 60 + i * 60);
-  });
-  state.extraChartsRendered = true;
-}
-
-/* Expand extra charts (render lazily on first open) */
-const expandBtn = document.getElementById('expand-btn');
-if (expandBtn) {
-  expandBtn.addEventListener('click', e => {
-    const panel = document.getElementById('extra-charts');
-    const btn = e.currentTarget;
-    panel.classList.toggle('is-open');
-    btn.classList.toggle('is-open');
-    const labelSpan = btn.querySelector('span:not(.chev)');
-    if (labelSpan) {
-      labelSpan.textContent = panel.classList.contains('is-open')
-        ? 'Collapse'
-        : `See all ${QUESTIONS.length} charts`;
-    }
-    if (panel.classList.contains('is-open')) {
-      // Build bars now; transitions fire correctly on visible elements.
-      renderExtraCharts();
-    }
-  });
 }
 
 /* ════════════════════════════════════════════════════════════════

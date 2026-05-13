@@ -88,6 +88,8 @@ body{font-family:var(--body);color:var(--ink);font-feature-settings:"ss01","cv11
 .continue-btn:not(:disabled):active{transform:scale(.985)}
 .continue-btn .continue-meta{font-family:var(--body);font-size:11px;letter-spacing:.16em;text-transform:uppercase;opacity:.6;font-variant-numeric:tabular-nums;}
 .chart-note{font-family:var(--body);font-size:10.5px;color:var(--muted);margin-top:8px;letter-spacing:.02em;line-height:1.4;}
+.chart-note.seed-note{margin-top:10px;padding:8px 12px;background:var(--grey-soft);border-radius:8px;font-style:italic;}
+.reveal-cta-note{margin-top:24px;padding:14px 16px;background:rgba(26,26,26,.04);border-radius:12px;font-family:var(--body);font-size:12px;line-height:1.5;color:var(--muted);}
 #scene-reveal .reveal-inner{display:flex;flex-direction:column;min-height:100%}
 .reveal-head{margin:20px 0 24px}
 .reveal-kicker{font-family:var(--body);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--red);margin:0 0 12px;display:flex;align-items:center;gap:8px;}
@@ -317,6 +319,7 @@ body{font-family:var(--body);color:var(--ink);font-feature-settings:"ss01","cv11
         <div class="chart" id="chart-q1" data-question="q1">
           <div class="chart-title"><span>Q1 · €/kg by 2030</span><span class="tot">n = <span class="rev-n">0</span></span></div>
           <div class="bars"></div>
+          <div class="chart-note seed-note" hidden>Seed distribution · chart goes live after <span class="threshold-n">5</span> responses</div>
           <div class="zef-marker" data-marker-for="q1" hidden>
             <div class="tick-line"></div>
             <div><div class="kicker"></div><div class="value"></div></div>
@@ -324,13 +327,8 @@ body{font-family:var(--body);color:var(--ink);font-feature-settings:"ss01","cv11
           </div>
         </div>
 
-        <button class="expand-trigger" id="expand-btn"><span>See all 6 charts</span><span class="chev">↓</span></button>
-        <div class="extra-charts" id="extra-charts">
-          <div class="chart" id="chart-q2" data-question="q2"><div class="chart-title"><span>Q2 · Top cost drivers</span><span class="tot">n = <span class="rev-n">0</span></span></div><div class="bars"></div><div class="chart-note">% of respondents who picked each · can sum to &gt;100%</div></div>
-          <div class="chart" id="chart-q3" data-question="q3"><div class="chart-title"><span>Q3 · GW operational by 2035</span><span class="tot">n = <span class="rev-n">0</span></span></div><div class="bars"></div></div>
-          <div class="chart" id="chart-q4" data-question="q4"><div class="chart-title"><span>Q4 · End-use</span><span class="tot">n = <span class="rev-n">0</span></span></div><div class="bars"></div></div>
-          <div class="chart" id="chart-q5" data-question="q5"><div class="chart-title"><span>Q5 · Production continent</span><span class="tot">n = <span class="rev-n">0</span></span></div><div class="bars"></div></div>
-          <div class="chart" id="chart-q6" data-question="q6"><div class="chart-title"><span>Q6 · You'd adopt at…</span><span class="tot">n = <span class="rev-n">0</span></span></div><div class="bars"></div></div>
+        <div class="reveal-cta-note">
+          The full benchmark — all 6 questions, broken down by role — is sent by email after the summit.
         </div>
 
         <div class="reveal-footer">
@@ -409,7 +407,9 @@ const HOOKS = {
 };
 const BENCHMARK = {question_id:"q1",kicker:"ZEF target",value:"< €3",unit:"/kg by 2030",pill:"TARGET",bucket:"2to3",bucket_offset:1.0};
 let AGGREGATE = {
-  total: 250,
+  total: 2,
+  threshold: 5,
+  source: 'demo',
   q1:{lt2:.05,"2to3":.20,"3to5":.40,"5to8":.25,gt8:.10},
   q2:{power:.55,electrolyzers:.50,epc:.35,certification:.30,cost:.20,demand:.20},
   q3:{lt20:.15,"20to100":.30,"100to250":.30,"250to500":.15,gt500:.10},
@@ -430,7 +430,6 @@ const state = {
   answers: Object.fromEntries(Q_IDS.map(id=>[id,defaultAnswer(id)])),
   sessionId: (crypto && crypto.randomUUID) ? crypto.randomUUID() : 'sess-'+Date.now(),
   pollPosted:false,
-  extraChartsRendered:false,
 };
 
 function renderHook(key){
@@ -454,7 +453,6 @@ function goto(id, opts={}){
   if(opts.reset){
     Q_IDS.forEach(qid=>state.answers[qid]=defaultAnswer(qid));
     state.pollPosted=false;
-    state.extraChartsRendered=false;
     document.querySelectorAll('.opt').forEach(o=>{o.classList.remove('is-locked');o.classList.remove('is-disabled');});
     document.querySelectorAll('.continue-btn').forEach(btn=>{btn.disabled=true;const c=btn.querySelector('.count');if(c)c.textContent='0';});
     document.querySelectorAll('#role-chips .chip').forEach(c=>c.classList.remove('is-on'));
@@ -463,9 +461,6 @@ function goto(id, opts={}){
     document.getElementById('lead-success').classList.remove('is-on');
     const errEl=document.getElementById('lead-error');if(errEl)errEl.hidden=true;
     document.getElementById('lead-email').value='';
-    const panel=document.getElementById('extra-charts');if(panel)panel.classList.remove('is-open');
-    const expBtn=document.getElementById('expand-btn');
-    if(expBtn){expBtn.classList.remove('is-open');const ls=expBtn.querySelector('span:not(.chev)');if(ls)ls.textContent=`See all ${QUESTIONS.length} charts`;}
   }
   const cur = document.querySelector('.scene.is-active');
   const next = document.getElementById('scene-'+id);
@@ -616,41 +611,23 @@ function renderReveal(){
   const primary=QUESTIONS[0];
   document.getElementById('reveal-headline').innerHTML=computeInsight();
   const total=AGGREGATE.total||0;
-  const totalLabel=total>0?`${total} people`:'the room';
-  document.getElementById('reveal-sub').innerHTML=`Here's how ${totalLabel} answered <b>${primary.chart_title}</b>.`+(state.answers[primary.id]?` Yours is in red.`:'');
+  const isPreview=AGGREGATE.source!=='sheet';
+  const totalLabel=total>0?`${total} ${total===1?'person has':'people have'} answered`:'no one has answered yet';
+  document.getElementById('reveal-sub').innerHTML=isPreview
+    ? `${totalLabel} so far. Seed distribution shown until the threshold is reached.`
+    : `Here's how ${total} people answered <b>${primary.chart_title}</b>.`+(state.answers[primary.id]?` Yours is in red.`:'');
   document.querySelectorAll('.chart .rev-n').forEach(el=>el.textContent=total);
-  document.getElementById('rev-live').textContent=total+' ANSWERED';
-  const panel=document.getElementById('extra-charts');
-  if(panel) panel.classList.remove('is-open');
-  const expBtn=document.getElementById('expand-btn');
-  if(expBtn){expBtn.classList.remove('is-open');const ls=expBtn.querySelector('span:not(.chev)');if(ls)ls.textContent=`See all ${QUESTIONS.length} charts`;}
-  state.extraChartsRendered=false;
+  document.getElementById('rev-live').textContent=isPreview
+    ? `PREVIEW · ${total} / ${AGGREGATE.threshold||5}`
+    : `${total} ANSWERED`;
+  const seedNote=document.querySelector('#chart-'+primary.id+' .seed-note');
+  if(seedNote){
+    seedNote.hidden=!isPreview;
+    const thr=seedNote.querySelector('.threshold-n');
+    if(thr) thr.textContent=AGGREGATE.threshold||5;
+  }
   const chart=document.getElementById('chart-'+primary.id);
   if(chart){buildBarChart(chart,primary.id,state.answers[primary.id]);setTimeout(()=>chart.classList.add('is-revealed'),150);}
-}
-
-function renderExtraCharts(){
-  if(state.extraChartsRendered) return;
-  QUESTIONS.slice(1).forEach((q,i)=>{
-    const chart=document.getElementById('chart-'+q.id);
-    if(!chart) return;
-    buildBarChart(chart,q.id,state.answers[q.id]);
-    setTimeout(()=>chart.classList.add('is-revealed'),60+i*60);
-  });
-  state.extraChartsRendered=true;
-}
-
-const expandBtn=document.getElementById('expand-btn');
-if(expandBtn){
-  expandBtn.addEventListener('click',e=>{
-    const panel=document.getElementById('extra-charts');
-    const btn=e.currentTarget;
-    panel.classList.toggle('is-open');
-    btn.classList.toggle('is-open');
-    const labelSpan=btn.querySelector('span:not(.chev)');
-    if(labelSpan) labelSpan.textContent=panel.classList.contains('is-open')?'Collapse':`See all ${QUESTIONS.length} charts`;
-    if(panel.classList.contains('is-open')) renderExtraCharts();
-  });
 }
 
 let selectedRole=null;
