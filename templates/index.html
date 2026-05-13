@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/styles.css">
+<link rel="stylesheet" href="/static/styles.css?v=3">
 </head>
 <body data-hook="{{ default_hook }}">
 
@@ -183,7 +183,7 @@
           </div>
           <p class="big">{{ lead_success_title }}</p>
           <p class="small">{{ lead_success_sub }}</p>
-          <a class="see" href="https://zef.tech" target="_blank" rel="noopener">See what ZEF does →</a>
+          <a class="see" href="https://www.zeroemissionfuels.com/" target="_blank" rel="noopener">See what ZEF does →</a>
         </div>
       </div>
 
@@ -200,6 +200,6 @@
 <script id="cfg-hooks"       type="application/json">{{ hooks_json | safe }}</script>
 <script id="cfg-benchmark"   type="application/json">{{ benchmark_json | safe }}</script>
 <script id="cfg-aggregate"   type="application/json">{{ initial_aggregate_json | safe }}</script>
-<script src="/static/app.js" defer></script>
+<script src="/static/app.js?v=3" defer></script>
 </body>
 </html>

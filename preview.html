@@ -31,7 +31,7 @@ body{font-family:var(--body);color:var(--ink);font-feature-settings:"ss01","cv11
 .phone{position:relative;width:min(100vw,420px);height:min(100vh,880px);background:var(--bg);overflow:hidden;border-radius:0;}
 @media (min-width:500px){.phone{border-radius:48px;box-shadow:0 0 0 2px #1a1a1a,0 0 0 12px #2a2724,0 0 0 13px #3a3633,0 50px 120px rgba(0,0,0,.5),0 10px 40px rgba(0,0,0,.35);}}
 .phone::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;background-image:linear-gradient(to right,rgba(26,26,26,.045) 1px,transparent 1px),linear-gradient(to bottom,rgba(26,26,26,.045) 1px,transparent 1px);background-size:28px 28px;mix-blend-mode:multiply;}
-.scene{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;padding:56px 24px 28px;opacity:0;transform:translateX(12px);pointer-events:none;transition:opacity .28s var(--ease),transform .32s var(--ease);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
+.scene{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;padding:56px 24px 48px;opacity:0;transform:translateX(12px);pointer-events:none;transition:opacity .28s var(--ease),transform .32s var(--ease);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
 .scene.is-active{opacity:1;transform:translateX(0);pointer-events:auto}
 .scene.is-exit-left{transform:translateX(-12px)}
 .topbar{display:flex;align-items:center;justify-content:space-between;height:28px;margin-bottom:auto;}
@@ -141,7 +141,7 @@ body{font-family:var(--body);color:var(--ink);font-feature-settings:"ss01","cv11
 .field input:focus{border-color:var(--ink);box-shadow:0 0 0 3px rgba(26,26,26,.06)}
 .field input.is-invalid{border-color:var(--red);box-shadow:0 0 0 3px rgba(228,0,43,.08)}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;}
-.chip{flex:1;min-width:0;text-align:center;padding:11px 6px;border:1px solid var(--grey-line);border-radius:99px;background:transparent;font-family:var(--body);font-size:13px;font-weight:500;color:var(--ink);cursor:pointer;transition:all .18s var(--ease);white-space:nowrap;}
+.chip{flex:0 1 auto;text-align:center;padding:10px 14px;border:1px solid var(--grey-line);border-radius:99px;background:transparent;font-family:var(--body);font-size:13px;font-weight:500;color:var(--ink);cursor:pointer;transition:all .18s var(--ease);white-space:nowrap;}
 .chip:hover{border-color:var(--ink)}
 .chip.is-on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .chips-hint{font-family:var(--body);font-size:11px;color:var(--muted);margin-top:10px;letter-spacing:.04em;}
@@ -160,8 +160,8 @@ body{font-family:var(--body);color:var(--ink);font-feature-settings:"ss01","cv11
 .success a.see:hover{color:var(--red);border-color:var(--red)}
 .lead-sig{margin-top:28px;padding-top:16px;border-top:1px solid var(--grey-line);font-family:var(--body);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;}
 @media (max-width:380px){
-  .scene{padding:44px 20px 24px}
-  .chip{font-size:12px;padding:10px 4px}
+  .scene{padding:44px 20px 40px}
+  .chip{font-size:12px;padding:9px 11px}
   .bar-row{grid-template-columns:80px 1fr 44px}
   .opt{font-size:17px;padding:14px 16px}
 }
@@ -184,10 +184,10 @@ body{font-family:var(--body);color:var(--ink);font-feature-settings:"ss01","cv11
         <p class="hook-sub"><b>Six questions.</b> One chart. See where you stand against the room.</p>
       </div>
       <div class="hook-cta-wrap">
-        <button class="cta" data-goto="q1"><span>Start the reality check</span><span class="arrow">60 sec →</span></button>
+        <button class="cta" data-goto="q1"><span>Start the reality check</span><span class="arrow">20 sec →</span></button>
         <div class="hook-context"><span class="pulse-dot"></span><span>Preview mode · submissions are stubbed</span></div>
       </div>
-      <div class="hook-signature"><span>Zero Emission Fuels</span><span>SOLAR CHEMICALS · SIMPLIFIED</span></div>
+      <div class="hook-signature"><span>ZEF</span><span>SOLAR CHEMICALS</span></div>
     </section>
 
     <!-- Q1 (single) -->
@@ -262,6 +262,7 @@ body{font-family:var(--body);color:var(--ink);font-feature-settings:"ss01","cv11
         <button class="opt" data-value="transport"><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">H₂ as transport fuel</span><span class="hint">Trucks, buses</span></button>
         <button class="opt" data-value="emethane"><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">e-Methane</span><span class="hint">Gas grid</span></button>
         <button class="opt" data-value="esaf"><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">eSAF / jet fuel</span><span class="hint">Aviation</span></button>
+        <button class="opt" data-value="other"><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Other</span><span class="hint">Something else</span></button>
       </div>
     </section>
 
@@ -368,10 +369,10 @@ body{font-family:var(--body);color:var(--ink);font-feature-settings:"ss01","cv11
           <div class="check"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           <p class="big">On the list. See you in the inbox.</p>
           <p class="small">We'll send the anonymized WHS 2026 results within 72h of the summit close.</p>
-          <a class="see" href="https://zef.tech" target="_blank" rel="noopener">See what ZEF does →</a>
+          <a class="see" href="https://www.zeroemissionfuels.com/" target="_blank" rel="noopener">See what ZEF does →</a>
         </div>
       </div>
-      <div class="lead-sig"><span>ZEF · Delft</span><span>NO SPAM · UNSUBSCRIBE ANY TIME</span></div>
+      <div class="lead-sig"><span>ZEF</span><span>SOLAR CHEMICALS</span></div>
     </section>
 
   </div>
@@ -391,8 +392,8 @@ const QUESTIONS = [
    options:[{value:"lt20",label:"Under 20 GW",hint:"Stalled"},{value:"20to100",label:"20 – 100 GW",hint:"Slow build"},{value:"100to250",label:"100 – 250 GW",hint:"On pace"},{value:"250to500",label:"250 – 500 GW",hint:"Acceleration"},{value:"gt500",label:"Over 500 GW",hint:"Boom"}],
    short_labels:{lt20:"< 20","20to100":"20–100","100to250":"100–250","250to500":"250–500",gt500:"> 500"}},
   {id:"q4",number:"04",chart_title:"Q4 · End-use",
-   options:[{value:"methanol",label:"Methanol",hint:"Feedstock"},{value:"ammonia",label:"Ammonia",hint:"Fertilizer + carrier"},{value:"refinery",label:"Refinery",hint:"Hydrocrackers"},{value:"transport",label:"H₂ as transport fuel",hint:"Trucks, buses"},{value:"emethane",label:"e-Methane",hint:"Gas grid"},{value:"esaf",label:"eSAF / jet fuel",hint:"Aviation"}],
-   short_labels:{methanol:"Methanol",ammonia:"Ammonia",refinery:"Refinery",transport:"Transport",emethane:"e-Methane",esaf:"eSAF"}},
+   options:[{value:"methanol",label:"Methanol",hint:"Feedstock"},{value:"ammonia",label:"Ammonia",hint:"Fertilizer + carrier"},{value:"refinery",label:"Refinery",hint:"Hydrocrackers"},{value:"transport",label:"H₂ as transport fuel",hint:"Trucks, buses"},{value:"emethane",label:"e-Methane",hint:"Gas grid"},{value:"esaf",label:"eSAF / jet fuel",hint:"Aviation"},{value:"other",label:"Other",hint:"Something else"}],
+   short_labels:{methanol:"Methanol",ammonia:"Ammonia",refinery:"Refinery",transport:"Transport",emethane:"e-Methane",esaf:"eSAF",other:"Other"}},
   {id:"q5",number:"05",chart_title:"Q5 · Production continent",
    options:[{value:"africa",label:"Africa",hint:"Solar abundance"},{value:"eu",label:"Europe",hint:"Policy push"},{value:"asia",label:"Asia",hint:"Demand pull"},{value:"anz",label:"Australia",hint:"Export plays"},{value:"northam",label:"North America",hint:"IRA, scale"},{value:"southam",label:"South America",hint:"Hydro + wind"}],
    short_labels:{africa:"Africa",eu:"Europe",asia:"Asia",anz:"Australia",northam:"N. America",southam:"S. America"}},
@@ -412,7 +413,7 @@ let AGGREGATE = {
   q1:{lt2:.05,"2to3":.20,"3to5":.40,"5to8":.25,gt8:.10},
   q2:{power:.55,electrolyzers:.50,epc:.35,certification:.30,cost:.20,demand:.20},
   q3:{lt20:.15,"20to100":.30,"100to250":.30,"250to500":.15,gt500:.10},
-  q4:{methanol:.10,ammonia:.30,refinery:.15,transport:.10,emethane:.10,esaf:.25},
+  q4:{methanol:.10,ammonia:.28,refinery:.13,transport:.10,emethane:.08,esaf:.23,other:.08},
   q5:{africa:.18,eu:.20,asia:.30,anz:.10,northam:.14,southam:.08},
   q6:{lt2:.35,"2to3":.30,"3to5":.15,"5to8":.05,gt8:.02,not_us:.13},
 };

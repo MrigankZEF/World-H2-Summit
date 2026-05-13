@@ -116,6 +116,7 @@ POLL_QUESTIONS: list[Question] = [
             {"value": "transport", "label": "H₂ as transport fuel",    "hint": "Trucks, buses"},
             {"value": "emethane",  "label": "e-Methane",               "hint": "Gas grid"},
             {"value": "esaf",      "label": "eSAF / jet fuel",         "hint": "Aviation"},
+            {"value": "other",     "label": "Other",                   "hint": "Something else"},
         ],
         "short_labels": {
             "methanol": "Methanol",
@@ -124,6 +125,7 @@ POLL_QUESTIONS: list[Question] = [
             "transport": "Transport",
             "emethane": "e-Methane",
             "esaf": "eSAF",
+            "other": "Other",
         },
     },
     {
@@ -211,9 +213,9 @@ WORDMARK = "ZEF"
 HOOK_EYEBROW = "World Hydrogen Summit · Rotterdam · May 2026"
 HOOK_SUB = "<b>Six questions.</b> One chart. See where you stand against the room."
 HOOK_CTA = "Start the reality check"
-HOOK_CTA_HINT = "60 sec →"
-HOOK_SIG_LEFT = "Zero Emission Fuels"
-HOOK_SIG_RIGHT = "SOLAR CHEMICALS · SIMPLIFIED"
+HOOK_CTA_HINT = "20 sec →"
+HOOK_SIG_LEFT = "ZEF"
+HOOK_SIG_RIGHT = "SOLAR CHEMICALS"
 
 LEAD_KICKER = "After the summit"
 LEAD_HEADLINE = "Want the full benchmark after the summit?"
@@ -221,8 +223,8 @@ LEAD_SUB = "We'll send you the anonymized results once the poll closes."
 LEAD_SUBMIT = "Send it to me"
 LEAD_SUCCESS_TITLE = "On the list. See you in the inbox."
 LEAD_SUCCESS_SUB = "We'll send the anonymized WHS 2026 results within 72h of the summit close."
-LEAD_SIG_LEFT = "ZEF · Delft"
-LEAD_SIG_RIGHT = "NO SPAM · UNSUBSCRIBE ANY TIME"
+LEAD_SIG_LEFT = "ZEF"
+LEAD_SIG_RIGHT = "SOLAR CHEMICALS"
 
 LEAD_ROLES = [
     {"value": "investor",  "label": "Investor"},
@@ -254,11 +256,12 @@ FALLBACK_AGGREGATE = {
     "q3": {"lt20": 0.15, "20to100": 0.30, "100to250": 0.30, "250to500": 0.15, "gt500": 0.10},
     "q4": {
         "methanol": 0.10,
-        "ammonia": 0.30,
-        "refinery": 0.15,
+        "ammonia": 0.28,
+        "refinery": 0.13,
         "transport": 0.10,
-        "emethane": 0.10,
-        "esaf": 0.25,
+        "emethane": 0.08,
+        "esaf": 0.23,
+        "other": 0.08,
     },
     "q5": {
         "africa": 0.18,
