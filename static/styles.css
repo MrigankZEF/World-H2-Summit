@@ -69,7 +69,7 @@ body{
 /* ───── Top chrome ───── */
 .topbar{
   display:flex;align-items:center;justify-content:space-between;
-  height:28px;margin-bottom:auto;
+  height:40px;margin-bottom:auto;
 }
 .wordmark{
   font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.24em;
@@ -83,13 +83,14 @@ body{
 .progress-bar{width:64px;height:2px;background:var(--grey-soft);border-radius:2px;overflow:hidden;position:relative}
 .progress-bar i{position:absolute;inset:0;background:var(--ink);transform-origin:left;transform:scaleX(0);transition:transform .5s var(--ease)}
 .back{
-  width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  width:40px;height:40px;display:flex;align-items:center;justify-content:center;
   border-radius:50%;background:transparent;border:1px solid var(--grey-line);
-  cursor:pointer;color:var(--ink);opacity:0;pointer-events:none;transition:opacity .25s;
-  margin-right:-4px;
+  cursor:pointer;color:var(--ink);opacity:0;pointer-events:none;transition:opacity .25s, background .15s;
+  margin-left:-6px;
 }
 .back.is-visible{opacity:1;pointer-events:auto}
-.back svg{width:12px;height:12px}
+.back:active{background:rgba(26,26,26,.06)}
+.back svg{width:14px;height:14px}
 
 /* ───── HOOK ───── */
 #scene-hook{padding:56px 24px 36px}
