@@ -71,6 +71,11 @@ body{
 }
 .scene.is-active{opacity:1;transform:translateX(0);pointer-events:auto}
 .scene.is-exit-left{transform:translateX(-12px)}
+/* Block ALL interaction inside inactive scenes (override .back.is-visible's
+   pointer-events:auto). Otherwise every scene's back button stacks on top of
+   the active one and steals clicks. */
+.scene:not(.is-active),
+.scene:not(.is-active) *{pointer-events:none !important}
 
 /* ───── Top chrome ───── */
 .topbar{

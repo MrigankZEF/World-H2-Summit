@@ -36,6 +36,7 @@ body{font-family:var(--body);color:var(--ink);font-feature-settings:"ss01","cv11
 .scene{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;padding:56px 24px max(88px, env(safe-area-inset-bottom) + 56px);opacity:0;transform:translateX(12px);pointer-events:none;transition:opacity .28s var(--ease),transform .32s var(--ease);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
 .scene.is-active{opacity:1;transform:translateX(0);pointer-events:auto}
 .scene.is-exit-left{transform:translateX(-12px)}
+.scene:not(.is-active),.scene:not(.is-active) *{pointer-events:none !important}
 .topbar{display:flex;align-items:center;justify-content:space-between;height:48px;margin-bottom:auto;}
 .wordmark{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.24em;color:var(--ink);display:flex;align-items:center;gap:8px;}
 .wordmark .dot{width:7px;height:7px;background:var(--red);border-radius:50%;display:inline-block;transform:translateY(-1px)}
