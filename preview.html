@@ -25,6 +25,8 @@
   --ease:cubic-bezier(.2,.8,.2,1);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+button{touch-action:manipulation;-webkit-touch-callout:none;user-select:none;}
+button svg{pointer-events:none}
 html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#2a2724;}
 body{font-family:var(--body);color:var(--ink);font-feature-settings:"ss01","cv11","tnum";-webkit-font-smoothing:antialiased;}
 .stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 30%,#1f1d1b 0%,#141311 60%,#0a0908 100%);padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);}

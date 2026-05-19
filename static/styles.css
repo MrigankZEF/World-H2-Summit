@@ -13,6 +13,12 @@
   --ease:cubic-bezier(.2,.8,.2,1);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+button{
+  touch-action:manipulation;
+  -webkit-touch-callout:none;
+  user-select:none;
+}
+button svg{pointer-events:none}
 html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#2a2724;}
 body{
   font-family:var(--body);color:var(--ink);
