@@ -28,10 +28,10 @@
 html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#2a2724;}
 body{font-family:var(--body);color:var(--ink);font-feature-settings:"ss01","cv11","tnum";-webkit-font-smoothing:antialiased;}
 .stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 30%,#1f1d1b 0%,#141311 60%,#0a0908 100%);padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);}
-.phone{position:relative;width:min(100vw,420px);height:min(100vh,880px);background:var(--bg);overflow:hidden;border-radius:0;}
+.phone{position:relative;width:min(100vw,420px);height:min(100vh,880px);height:min(100dvh,880px);background:var(--bg);overflow:hidden;border-radius:0;}
 @media (min-width:500px){.phone{border-radius:48px;box-shadow:0 0 0 2px #1a1a1a,0 0 0 12px #2a2724,0 0 0 13px #3a3633,0 50px 120px rgba(0,0,0,.5),0 10px 40px rgba(0,0,0,.35);}}
 .phone::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;background-image:linear-gradient(to right,rgba(26,26,26,.045) 1px,transparent 1px),linear-gradient(to bottom,rgba(26,26,26,.045) 1px,transparent 1px);background-size:28px 28px;mix-blend-mode:multiply;}
-.scene{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;padding:56px 24px 48px;opacity:0;transform:translateX(12px);pointer-events:none;transition:opacity .28s var(--ease),transform .32s var(--ease);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
+.scene{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;padding:56px 24px max(88px, env(safe-area-inset-bottom) + 56px);opacity:0;transform:translateX(12px);pointer-events:none;transition:opacity .28s var(--ease),transform .32s var(--ease);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
 .scene.is-active{opacity:1;transform:translateX(0);pointer-events:auto}
 .scene.is-exit-left{transform:translateX(-12px)}
 .topbar{display:flex;align-items:center;justify-content:space-between;height:28px;margin-bottom:auto;}
@@ -162,7 +162,7 @@ body{font-family:var(--body);color:var(--ink);font-feature-settings:"ss01","cv11
 .success a.see:hover{color:var(--red);border-color:var(--red)}
 .lead-sig{margin-top:28px;padding-top:16px;border-top:1px solid var(--grey-line);font-family:var(--body);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;}
 @media (max-width:380px){
-  .scene{padding:44px 20px 40px}
+  .scene{padding:44px 20px max(80px, env(safe-area-inset-bottom) + 48px)}
   .chip{font-size:12px;padding:9px 11px}
   .bar-row{grid-template-columns:80px 1fr 44px}
   .opt{font-size:17px;padding:14px 16px}
@@ -432,6 +432,17 @@ const state = {
   pollPosted:false,
 };
 
+// Holds the auto-advance setTimeout id so back-clicks can cancel it.
+let pendingAdvance = null;
+
+function allAnswered(){
+  return Q_IDS.every(id=>{
+    const v=state.answers[id];
+    if(IS_MULTI(id)) return Array.isArray(v) && v.length>0;
+    return !!v;
+  });
+}
+
 function renderHook(key){
   const words = HOOKS[key] || HOOKS.C;
   const el = document.getElementById('hook-headline');
@@ -450,6 +461,18 @@ function renderHook(key){
 renderHook('C');
 
 function goto(id, opts={}){
+  // Fix A: cancel any pending auto-advance so it can't fire after the user navigates.
+  if(pendingAdvance){clearTimeout(pendingAdvance);pendingAdvance=null;}
+
+  // Fix B: never land on reveal with missing answers — redirect to first unanswered question.
+  if(id==='reveal' && !allAnswered()){
+    const missing=Q_IDS.find(qid=>{
+      const v=state.answers[qid];
+      return IS_MULTI(qid) ? (!Array.isArray(v)||v.length===0) : !v;
+    });
+    if(missing) id=missing;
+  }
+
   if(opts.reset){
     Q_IDS.forEach(qid=>state.answers[qid]=defaultAnswer(qid));
     state.pollPosted=false;
@@ -499,7 +522,7 @@ document.querySelectorAll('.options').forEach(group=>{
         const i=Q_IDS.indexOf(qid);
         const isLast=i===Q_IDS.length-1;
         const nextId=isLast?'reveal':Q_IDS[i+1];
-        setTimeout(()=>goto(nextId),280);
+        pendingAdvance=setTimeout(()=>{pendingAdvance=null;goto(nextId);},280);
         if(isLast){console.log('[preview] POST /api/poll',{sessionId:state.sessionId,answers:{...state.answers}});}
       }
     });

@@ -25,6 +25,9 @@ const state = {
   pollPosted: false,
 };
 
+// Holds the auto-advance setTimeout id so back-clicks can cancel it.
+let pendingAdvance = null;
+
 /* ── Hook headlines ──────────────────────────────────── */
 function renderHook(key) {
   const words = HOOKS[key] || Object.values(HOOKS)[0];
@@ -45,6 +48,21 @@ renderHook(document.body.getAttribute('data-hook') || 'C');
 
 /* ── Scene navigation ────────────────────────────────── */
 function goto(id, opts = {}) {
+  // Fix A: cancel any pending auto-advance so it can't fire after the user navigates.
+  if (pendingAdvance) {
+    clearTimeout(pendingAdvance);
+    pendingAdvance = null;
+  }
+
+  // Fix B: never land on reveal with missing answers — redirect to first unanswered question.
+  if (id === 'reveal' && !allAnswered()) {
+    const missing = Q_IDS.find(qid => {
+      const v = state.answers[qid];
+      return IS_MULTI(qid) ? (!Array.isArray(v) || v.length === 0) : !v;
+    });
+    if (missing) id = missing;
+  }
+
   if (opts.reset) {
     Q_IDS.forEach(qid => state.answers[qid] = defaultAnswer(qid));
     state.pollPosted = false;
@@ -123,7 +141,10 @@ document.querySelectorAll('.options').forEach(group => {
         const i = Q_IDS.indexOf(qid);
         const isLast = i === Q_IDS.length - 1;
         const nextId = isLast ? 'reveal' : Q_IDS[i + 1];
-        setTimeout(() => goto(nextId), 280);
+        pendingAdvance = setTimeout(() => {
+          pendingAdvance = null;
+          goto(nextId);
+        }, 280);
         if (isLast) postPoll();
       }
     });

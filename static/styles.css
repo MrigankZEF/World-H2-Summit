@@ -28,6 +28,7 @@ body{
 }
 .phone{
   position:relative;width:min(100vw, 420px);height:min(100vh, 880px);
+  height:min(100dvh, 880px);
   background:var(--bg);overflow:hidden;border-radius:0;
 }
 @media (min-width: 500px){
@@ -56,7 +57,7 @@ body{
 .scene{
   position:absolute;inset:0;z-index:2;
   display:flex;flex-direction:column;
-  padding:56px 24px 48px;
+  padding:56px 24px max(88px, env(safe-area-inset-bottom) + 56px);
   opacity:0;transform:translateX(12px);pointer-events:none;
   transition:opacity .28s var(--ease), transform .32s var(--ease);
   overflow-y:auto;overflow-x:hidden;
@@ -416,7 +417,7 @@ body{
 }
 
 @media (max-width:380px){
-  .scene{padding:44px 20px 40px}
+  .scene{padding:44px 20px max(80px, env(safe-area-inset-bottom) + 48px)}
   .chip{font-size:12px;padding:9px 11px}
   .bar-row{grid-template-columns:72px 1fr 44px}
 }
