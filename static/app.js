@@ -92,23 +92,24 @@ function goto(id, opts = {}) {
     cur.classList.add('is-exit-left');
     setTimeout(() => cur.classList.remove('is-exit-left'), 340);
   }
-  setTimeout(() => {
-    next.classList.add('is-active');
-    next.scrollTop = 0;
-    state.current = id;
-    if (id === 'reveal') renderReveal();
-    if (id === 'hook') renderHook(document.body.getAttribute('data-hook') || 'C');
-    syncSelections();
-  }, 60);
+  // Activate next scene synchronously so pointer-events flip immediately
+  // (no 60ms gap where every scene is pointer-events:none and clicks land on nothing).
+  next.classList.add('is-active');
+  next.scrollTop = 0;
+  state.current = id;
+  if (id === 'reveal') renderReveal();
+  if (id === 'hook') renderHook(document.body.getAttribute('data-hook') || 'C');
+  syncSelections();
 }
 
-/* ── data-goto wiring ────────────────────────────────── */
-document.querySelectorAll('[data-goto]').forEach(el => {
-  el.addEventListener('click', () => {
-    const target = el.getAttribute('data-goto');
-    const reset = el.getAttribute('data-reset') === '1';
-    goto(target, { reset });
-  });
+/* ── data-goto wiring (delegated; survives any per-element binding race) ─── */
+document.addEventListener('click', (e) => {
+  const goEl = e.target.closest('[data-goto]');
+  if (!goEl) return;
+  const target = goEl.getAttribute('data-goto');
+  const reset = goEl.getAttribute('data-reset') === '1';
+  console.log('[nav]', target, 'from', state.current);
+  goto(target, { reset });
 });
 
 /* ── Option tap → lock-in (single) or toggle (multi) ─── */
